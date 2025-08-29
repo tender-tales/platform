@@ -1,0 +1,52 @@
+services:
+  frontend-dev:
+    profiles: ["frontend"]
+    build:
+      context: ./ui
+      dockerfile: Dockerfile.dev
+      args:
+        - FRONTEND_PORT=${FRONTEND_PORT}
+        - BACKEND_PORT=${BACKEND_PORT}
+        - BACKEND_HOST=${BACKEND_HOST}
+    image: tender-tales/platform:frontend-dev-${BUILD_ID:-latest}
+    env_file: .env.development
+    ports:
+      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
+    environment:
+      - NEXT_PUBLIC_BACKEND_HOST=${BACKEND_HOST}
+      - NEXT_PUBLIC_BACKEND_PORT=${BACKEND_PORT}
+      - NEXT_PUBLIC_FRONTEND_PORT=${FRONTEND_PORT}
+    volumes:
+      - ./ui:/app
+      - /app/node_modules
+    depends_on:
+      - backend-dev
+    networks:
+      - app-network
+
+  backend-dev:
+    build:
+      context: ./tender_tales
+      dockerfile: Dockerfile.dev
+      args:
+        - BACKEND_PORT=${BACKEND_PORT}
+        - FRONTEND_PORT=${FRONTEND_PORT}
+    image: tender-tales/platform:backend-dev-${BUILD_ID:-latest}
+    env_file: .env.development
+    ports:
+      - "${BACKEND_PORT}:${BACKEND_PORT}"
+    environment:
+      - BACKEND_PORT=${BACKEND_PORT}
+      - FRONTEND_PORT=${FRONTEND_PORT}
+      - EARTH_ENGINE_PROJECT_ID=${EARTH_ENGINE_PROJECT_ID}
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
+      - DEBUG=${DEBUG}
+    volumes:
+      - ./tender_tales:/app
+      - ~/.config/earthengine/credentials:/app/credentials.json:ro
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

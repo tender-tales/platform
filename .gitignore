@@ -1,5 +1,7 @@
 # Dependencies
-/node_modules
+**node_modules
+**.next
+**__pycache__
 /.pnp
 .pnp.js
 

@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { Satellite, MapPin, TrendingUp, Layers, Eye, ArrowRight, Play, BarChart3, Globe2, TreePine, Building, Mountain } from 'lucide-react'
+import Image from 'next/image'
 
 export default function Home() {
   const fadeInUp = {
@@ -24,26 +25,28 @@ export default function Home() {
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         {/* NASA Earth Satellite Timelapse Background */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-green-800 to-blue-900">
-          <img 
+          <Image
             src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExeDV2ZmxtYWM4amluaDg2Nml1ZzZ1a3pqMzRxODkyMjBsaThwOTNzeCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l1Kddb81CyiXkEanC/giphy.gif"
             alt="NASA EPIC Earth satellite timelapse showing full Earth from space"
             className="w-full h-full object-cover opacity-90"
-            loading="eager"
+            fill
+            priority
+            unoptimized
             onError={(e) => {
               e.currentTarget.style.display = 'none';
             }}
           />
           <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-black/60"></div>
         </div>
-        
+
         <div className="container mx-auto px-4 relative z-10">
-          <motion.div 
+          <motion.div
             className="text-center max-w-5xl mx-auto text-white"
             initial="initial"
             animate="animate"
             variants={stagger}
           >
-            <motion.div 
+            <motion.div
               className="flex items-center justify-center mb-6"
               variants={fadeInUp}
             >
@@ -53,28 +56,31 @@ export default function Home() {
                 <span className="text-blue-400">Tales</span>
               </h1>
             </motion.div>
-            
-            <motion.p 
+
+            <motion.p
               className="text-2xl md:text-3xl text-gray-200 mb-6 font-light"
               variants={fadeInUp}
             >
               Visualizing Our Changing Planet
             </motion.p>
-            
-            <motion.p 
+
+            <motion.p
               className="text-lg md:text-xl text-gray-300 mb-12 max-w-3xl mx-auto leading-relaxed"
               variants={fadeInUp}
             >
-              Harness the power of Google Earth Engine satellite data to detect and monitor 
-              environmental changes. Track deforestation, urban growth, agricultural expansion, 
+              Harness the power of Google Earth Engine satellite data to detect and monitor
+              environmental changes. Track deforestation, urban growth, agricultural expansion,
               and climate impacts with AI-powered analysis.
             </motion.p>
-            
-            <motion.div 
+
+            <motion.div
               className="flex flex-col sm:flex-row gap-4 justify-center"
               variants={fadeInUp}
             >
-              <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-8 rounded-lg transition duration-300 shadow-lg flex items-center justify-center gap-2 text-lg">
+              <button
+                onClick={() => window.location.href = '/map'}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-8 rounded-lg transition duration-300 shadow-lg flex items-center justify-center gap-2 text-lg"
+              >
                 <Play className="w-5 h-5" />
                 Explore the Map
               </button>
@@ -87,7 +93,7 @@ export default function Home() {
         </div>
 
         {/* Scroll indicator */}
-        <motion.div 
+        <motion.div
           className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -102,7 +108,7 @@ export default function Home() {
       {/* Platform Overview */}
       <section className="py-20 bg-gray-50">
         <div className="container mx-auto px-4">
-          <motion.div 
+          <motion.div
             className="text-center mb-16"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -113,19 +119,19 @@ export default function Home() {
               Powered by Satellite Intelligence
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              Our platform processes vast amounts of satellite imagery from Google Earth Engine 
+              Our platform processes vast amounts of satellite imagery from Google Earth Engine
               to identify patterns, track changes, and provide insights into our planet&apos;s transformation.
             </p>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             className="grid md:grid-cols-3 gap-8 mb-16"
             initial="initial"
             whileInView="animate"
             variants={stagger}
             viewport={{ once: true }}
           >
-            <motion.div 
+            <motion.div
               className="text-center p-8 bg-white rounded-2xl shadow-lg hover:shadow-xl transition duration-300"
               variants={fadeInUp}
             >
@@ -134,12 +140,12 @@ export default function Home() {
               </div>
               <h3 className="text-2xl font-semibold text-gray-800 mb-4">Global Coverage</h3>
               <p className="text-gray-600 leading-relaxed">
-                Access satellite imagery covering the entire planet with regular updates 
+                Access satellite imagery covering the entire planet with regular updates
                 to track changes over time across any region.
               </p>
             </motion.div>
 
-            <motion.div 
+            <motion.div
               className="text-center p-8 bg-white rounded-2xl shadow-lg hover:shadow-xl transition duration-300"
               variants={fadeInUp}
             >
@@ -148,12 +154,12 @@ export default function Home() {
               </div>
               <h3 className="text-2xl font-semibold text-gray-800 mb-4">AI Detection</h3>
               <p className="text-gray-600 leading-relaxed">
-                Machine learning models trained on labeled datasets automatically detect 
+                Machine learning models trained on labeled datasets automatically detect
                 and classify environmental changes with high accuracy.
               </p>
             </motion.div>
 
-            <motion.div 
+            <motion.div
               className="text-center p-8 bg-white rounded-2xl shadow-lg hover:shadow-xl transition duration-300"
               variants={fadeInUp}
             >
@@ -162,7 +168,7 @@ export default function Home() {
               </div>
               <h3 className="text-2xl font-semibold text-gray-800 mb-4">Trend Analysis</h3>
               <p className="text-gray-600 leading-relaxed">
-                Visualize temporal changes and identify trends in land use, 
+                Visualize temporal changes and identify trends in land use,
                 vegetation cover, and human development patterns.
               </p>
             </motion.div>
@@ -173,7 +179,7 @@ export default function Home() {
       {/* Change Detection Examples */}
       <section className="py-20 bg-gray-900">
         <div className="container mx-auto px-4">
-          <motion.div 
+          <motion.div
             className="text-center mb-16"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -184,12 +190,12 @@ export default function Home() {
               Examples of Change Detection
             </h2>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
-              See how satellite imagery reveals the story of our changing planet through 
+              See how satellite imagery reveals the story of our changing planet through
               before-and-after comparisons and time-series analysis.
             </p>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             className="grid md:grid-cols-2 lg:grid-cols-4 gap-6"
             initial="initial"
             whileInView="animate"
@@ -197,36 +203,36 @@ export default function Home() {
             viewport={{ once: true }}
           >
             {[
-              { 
-                icon: TreePine, 
+              {
+                icon: TreePine,
                 title: 'Deforestation Tracking',
                 desc: 'Monitor forest loss in the Amazon, detecting illegal logging and tracking reforestation efforts.',
                 bgColor: 'bg-green-500/20',
                 textColor: 'text-green-400'
               },
-              { 
-                icon: Building, 
+              {
+                icon: Building,
                 title: 'Urban Expansion',
                 desc: 'Track city growth, new infrastructure development, and suburban sprawl patterns.',
                 bgColor: 'bg-blue-500/20',
                 textColor: 'text-blue-400'
               },
-              { 
-                icon: Mountain, 
+              {
+                icon: Mountain,
                 title: 'Agricultural Changes',
                 desc: 'Identify crop rotation patterns, irrigation expansion, and land conversion to farming.',
                 bgColor: 'bg-yellow-500/20',
                 textColor: 'text-yellow-400'
               },
-              { 
-                icon: Layers, 
+              {
+                icon: Layers,
                 title: 'Climate Impact',
                 desc: 'Observe glacial retreat, desert expansion, and vegetation changes due to climate.',
                 bgColor: 'bg-red-500/20',
                 textColor: 'text-red-400'
               }
             ].map((item, index) => (
-              <motion.div 
+              <motion.div
                 key={index}
                 className="group p-6 bg-gray-800 rounded-xl border border-gray-700 hover:border-blue-500 transition-all duration-300 cursor-pointer"
                 variants={fadeInUp}
@@ -251,7 +257,7 @@ export default function Home() {
       {/* Technology Stack */}
       <section className="py-20 bg-gradient-to-br from-blue-50 to-green-50">
         <div className="container mx-auto px-4">
-          <motion.div 
+          <motion.div
             className="text-center mb-16"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -262,12 +268,12 @@ export default function Home() {
               Built on Industry-Leading Technology
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Leveraging Google Earth Engine&apos;s petabyte-scale satellite database 
+              Leveraging Google Earth Engine&apos;s petabyte-scale satellite database
               and advanced machine learning for accurate change detection.
             </p>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             className="grid md:grid-cols-2 gap-12 items-center"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -332,7 +338,7 @@ export default function Home() {
               Start Exploring Earth&apos;s Changes
             </h2>
             <p className="text-xl mb-10 max-w-2xl mx-auto opacity-90 leading-relaxed">
-              Join researchers, environmentalists, and data scientists in understanding 
+              Join researchers, environmentalists, and data scientists in understanding
               our planet&apos;s transformation through the lens of satellite imagery.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
