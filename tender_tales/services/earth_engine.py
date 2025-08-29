@@ -173,7 +173,7 @@ class EarthEngineService:
             logger.debug("🧪 Testing Earth Engine connection...")
 
             # Simple test - get info about the SRTM dataset
-            dataset = ee.Image("USGS/SRTMGL1_003")  # type: ignore[attr-defined]
+            dataset = ee.Image("USGS/SRTMGL1_003")
             info = dataset.getInfo()
 
             if info and "bands" in info:
@@ -203,7 +203,7 @@ class EarthEngineService:
         processing_params = self._get_processing_parameters(area_params)
 
         try:
-            geometry = ee.Geometry.Rectangle(  # type: ignore[attr-defined]
+            geometry = ee.Geometry.Rectangle(
                 [bounds.west, bounds.south, bounds.east, bounds.north]
             )
 
@@ -317,15 +317,15 @@ class EarthEngineService:
         self, geometry: Any, reference_year: int, target_year: int
     ) -> Any:
         """Create similarity image from Earth Engine data."""
-        embeddings = ee.ImageCollection("GOOGLE/SATELLITE_EMBEDDING/V1/ANNUAL")  # type: ignore[attr-defined]
+        embeddings = ee.ImageCollection("GOOGLE/SATELLITE_EMBEDDING/V1/ANNUAL")
 
         reference_collection = embeddings.filter(
-            ee.Filter.date(f"{reference_year}-01-01", f"{reference_year}-12-31")  # type: ignore[attr-defined]
+            ee.Filter.date(f"{reference_year}-01-01", f"{reference_year}-12-31")
         ).filterBounds(geometry)
         reference_mosaic = reference_collection.mosaic()
 
         target_collection = embeddings.filter(
-            ee.Filter.date(f"{target_year}-01-01", f"{target_year}-12-31")  # type: ignore[attr-defined]
+            ee.Filter.date(f"{target_year}-01-01", f"{target_year}-12-31")
         ).filterBounds(geometry)
         target_mosaic = target_collection.mosaic()
 
@@ -349,7 +349,7 @@ class EarthEngineService:
     ) -> Any:
         """Create visualization parameters and visualized image."""
         stats = similarity_image.reduceRegion(
-            reducer=ee.Reducer.minMax(),  # type: ignore[attr-defined]
+            reducer=ee.Reducer.minMax(),
             geometry=geometry,
             scale=processing_params["stats_scale"],
             maxPixels=int(processing_params["max_pixels"]),
@@ -398,7 +398,7 @@ class EarthEngineService:
         sample_points = self._create_efficient_sample_grid(
             bounds, processing_params["sample_grid_size"]
         )
-        sample_collection = ee.FeatureCollection(sample_points)  # type: ignore[attr-defined]
+        sample_collection = ee.FeatureCollection(sample_points)
 
         sample_scale = max(processing_params["scale"], 30)
         sampled_stats = similarity_image.sampleRegions(
@@ -457,7 +457,7 @@ class EarthEngineService:
 
         try:
             emergency_sample_points = self._create_efficient_sample_grid(bounds, 3)
-            emergency_collection = ee.FeatureCollection(emergency_sample_points)  # type: ignore[attr-defined]
+            emergency_collection = ee.FeatureCollection(emergency_sample_points)
 
             stats_data = similarity_image.sampleRegions(
                 collection=emergency_collection,
@@ -596,12 +596,12 @@ class EarthEngineService:
             raise RuntimeError("Earth Engine not initialized")
 
         try:
-            geometry = ee.Geometry.Rectangle(  # type: ignore[attr-defined]
+            geometry = ee.Geometry.Rectangle(
                 [bounds.west, bounds.south, bounds.east, bounds.north]
             )
 
             collection = (
-                ee.ImageCollection("GOOGLE/SATELLITE_EMBEDDING/V1/ANNUAL")  # type: ignore[attr-defined]
+                ee.ImageCollection("GOOGLE/SATELLITE_EMBEDDING/V1/ANNUAL")
                 .filterDate(f"{year}-01-01", f"{year}-12-31")
                 .filterBounds(geometry)
             )
@@ -612,7 +612,7 @@ class EarthEngineService:
             sample_points = self._create_random_sample_points(bounds, num_points)
 
             # Sample embeddings at these points
-            sample_collection = ee.FeatureCollection(sample_points)  # type: ignore[attr-defined]
+            sample_collection = ee.FeatureCollection(sample_points)
             samples = image.sampleRegions(
                 collection=sample_collection,
                 scale=30,  # Increased from 10 for faster processing
@@ -664,7 +664,7 @@ class EarthEngineService:
             for j in range(grid_size):
                 lat = bounds.south + (bounds.north - bounds.south) * (i / grid_size)
                 lng = bounds.west + (bounds.east - bounds.west) * (j / grid_size)
-                points.append(ee.Feature(ee.Geometry.Point([lng, lat])))  # type: ignore[attr-defined]
+                points.append(ee.Feature(ee.Geometry.Point([lng, lat])))
         return points
 
     def _create_efficient_sample_grid(
@@ -686,7 +686,7 @@ class EarthEngineService:
         ]
 
         for lng, lat in corner_points:
-            points.append(ee.Feature(ee.Geometry.Point([lng, lat])))  # type: ignore[attr-defined]
+            points.append(ee.Feature(ee.Geometry.Point([lng, lat])))
 
         # Add regular grid points (reduced count)
         if grid_size > 5:
@@ -695,7 +695,7 @@ class EarthEngineService:
                 for j in range(0, grid_size, step_size):
                     lat = bounds.south + (bounds.north - bounds.south) * (i / grid_size)
                     lng = bounds.west + (bounds.east - bounds.west) * (j / grid_size)
-                    points.append(ee.Feature(ee.Geometry.Point([lng, lat])))  # type: ignore[attr-defined]
+                    points.append(ee.Feature(ee.Geometry.Point([lng, lat])))
 
         return points
 
@@ -707,7 +707,7 @@ class EarthEngineService:
         for _ in range(num_points):
             lat = bounds.south + (bounds.north - bounds.south) * np.random.random()
             lng = bounds.west + (bounds.east - bounds.west) * np.random.random()
-            points.append(ee.Feature(ee.Geometry.Point([lng, lat])))  # type: ignore[attr-defined]
+            points.append(ee.Feature(ee.Geometry.Point([lng, lat])))
         return points
 
     def _classify_change(self, similarity: float) -> str:
