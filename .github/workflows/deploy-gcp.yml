@@ -137,7 +137,7 @@ jobs:
           service: ${{ env.SERVICE_BACKEND }}
           region: ${{ env.REGION }}
           image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_BACKEND }}:${{ github.sha }}
-          flags: '--allow-unauthenticated --memory=1Gi --cpu=1 --timeout=300 --max-instances=10 --startup-cpu-boost'
+          flags: '--allow-unauthenticated --memory=1Gi --cpu=1 --timeout=300 --max-instances=10 --cpu-boost'
           env_vars: EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }},GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
 
       - name: Deploy Frontend to Cloud Run
