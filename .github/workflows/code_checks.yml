@@ -55,4 +55,6 @@ jobs:
         uses: pypa/gh-action-pip-audit@1220774d901786e6f652ae159f7b6bc8fea6d266
         with:
           virtual-environment: tender_tales/.venv/
-          ignore-vuln: GHSA-wj6h-64fc-37mp
+          # GHSA-wj6h-64fc-37mp is an ecdsa vulnerability with no planned fix (timing attack considered out of scope)
+          ignore-vulns: |
+            GHSA-wj6h-64fc-37mp

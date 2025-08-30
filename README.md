@@ -20,25 +20,11 @@ cp .env.development .env
 
 2. Run with Docker Compose:
 ```bash
-docker-compose -f docker-compose.dev.yml up backend-dev
+docker compose --env-file .env.development -f docker-compose.dev.yml up backend-dev
 # In another terminal for frontend:
-docker-compose -f docker-compose.dev.yml --profile frontend up frontend-dev
+docker compose --env-file .env.development -f docker-compose.dev.yml --profile frontend up frontend-dev
 ```
 
-### Production
-
-1. Set up environment:
-```bash
-cp .env.production .env
-# Edit .env with your production configuration
-```
-
-2. Run with Docker Compose:
-```bash
-docker-compose up backend
-# In another terminal for frontend:
-docker-compose --profile frontend up frontend
-```
 
 ## Environment Variables
 
@@ -51,15 +37,6 @@ docker-compose --profile frontend up frontend
 - `BACKEND_PORT` - Backend port (default: 8000)
 - `DEBUG` - Enable debug mode (default: false)
 
-## API Endpoints
-
-The backend provides the following API endpoints:
-
-- `GET /api/similarity-heatmap` - Generate similarity heatmaps between two years
-- `GET /api/embeddings` - Get satellite embeddings for an area
-- `GET /api/demo-locations` - Get predefined demo locations
-- `GET /api/analysis-types` - Get supported analysis types
-- `GET /health` - Service health check
 
 ## Google Earth Engine Setup
 
@@ -86,27 +63,4 @@ cd tender_tales/
 uv sync --dev
 uv run uvicorn api.main:app --reload
 uv run pytest
-```
-
-## Project Structure
-
-```
-platform/
-├── ui/                     # Next.js frontend
-│   ├── src/
-│   │   ├── app/           # App router pages
-│   │   ├── lib/           # Utility functions
-│   │   └── types/         # TypeScript types
-│   ├── Dockerfile         # Production Dockerfile
-│   └── Dockerfile.dev     # Development Dockerfile
-├── tender_tales/          # FastAPI backend
-│   ├── api/               # API routes and configuration
-│   ├── services/          # Business logic and Earth Engine integration
-│   ├── tests/             # Test files
-│   ├── Dockerfile         # Production Dockerfile
-│   └── Dockerfile.dev     # Development Dockerfile
-├── docker-compose.yml     # Production compose
-├── docker-compose.dev.yml # Development compose
-├── .env.development       # Development environment
-└── .env.production        # Production environment
 ```

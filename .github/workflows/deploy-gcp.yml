@@ -1,4 +1,4 @@
-name: Build and Deploy
+name: build and deploy to GCP
 
 on:
   push:
@@ -18,12 +18,15 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Create Earth Engine Credentials (for build)
-        run: echo '{}' > tender_tales/credentials.json
+        run: echo '${{ secrets.EARTH_ENGINE_CREDENTIALS }}' > tender_tales/credentials.json
 
       - name: Set up environment variables
         run: |
@@ -45,6 +48,12 @@ jobs:
           export DEBUG=false
           export BUILD_ID=${{ github.sha }}
           docker compose build backend frontend
+
+      - name: Google Auth for Testing
+        uses: 'google-github-actions/auth@v2'
+        with:
+          workload_identity_provider: '${{ secrets.WIF_PROVIDER }}'
+          service_account: 'earth-engine-service@ocean-health-468302.iam.gserviceaccount.com'
 
       - name: Test image functionality
         run: |
@@ -77,7 +86,8 @@ jobs:
       - name: Google Auth
         uses: 'google-github-actions/auth@v2'
         with:
-          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+          workload_identity_provider: '${{ secrets.WIF_PROVIDER }}'
+          service_account: 'earth-engine-service@ocean-health-468302.iam.gserviceaccount.com'
 
       - name: Set up Cloud SDK
         uses: 'google-github-actions/setup-gcloud@v2'

@@ -58,31 +58,37 @@ class EarthEngineService:
 
             logger.info(f"🔗 Using project ID: {settings.earth_engine_project_id}")
 
-            # Try to initialize with credentials file
-            credentials_path = "/app/credentials.json"
-            logger.debug(f"🔍 Looking for credentials at: {credentials_path}")
+            # Try to initialize with credentials file (check multiple locations)
+            credentials_paths = [
+                "/app/credentials.json",  # For Cloud Run deployment
+                "/run/secrets/earthengine-credentials",  # For Docker Compose with secrets
+                os.path.expanduser(
+                    "~/.config/earthengine/credentials"
+                ),  # Default EE location
+            ]
 
-            try:
-                if (
-                    os.path.exists(credentials_path)
-                    and os.path.getsize(credentials_path) > 0
-                ):
-                    logger.info("📄 Found credentials file, checking format...")
+            credentials_path = None
+            for path in credentials_paths:
+                logger.debug(f"🔍 Looking for credentials at: {path}")
+                if os.path.exists(path) and os.path.getsize(path) > 0:
+                    credentials_path = path
+                    logger.info(f"📄 Found credentials file at: {path}")
+                    break
+
+            if credentials_path:
+                try:
                     if self._try_credentials_file(credentials_path):
                         return
+                except Exception as e:
+                    logger.warning(
+                        f"⚠️  Failed to use credentials file at {credentials_path}: {e}"
+                    )
+                    # Continue to try other methods
 
-                logger.info(
-                    "🔄 No valid credentials file found, trying default authentication..."
-                )
-                self._initialize_with_default()
-
-            except Exception as e:
-                logger.warning(f"⚠️  Failed to use credentials file: {e}")
-                logger.info("🔄 Attempting fallback initialization...")
-
-                # Fall back to default initialization
-                self._initialize_with_default()
-                return
+            logger.info(
+                "🔄 No valid credentials file found, trying default authentication..."
+            )
+            self._initialize_with_default()
 
         except Exception as e:
             self._log_initialization_error(e)
@@ -97,9 +103,14 @@ class EarthEngineService:
             if "refresh_token" in creds:
                 return self._initialize_with_oauth(creds)
 
+            # If it's a service account key (has client_email and private_key)
             if "type" in creds and creds["type"] == "service_account":
-                return self._initialize_with_service_account()
+                if "client_email" in creds and "private_key" in creds:
+                    return self._initialize_with_service_account(credentials_path)
+                logger.warning("⚠️  Service account credentials incomplete")
+                return False
 
+            logger.warning("⚠️  Unrecognized credentials format")
             return False
         except Exception as e:
             logger.warning(f"⚠️  Failed to use credentials file: {e}")
@@ -133,15 +144,46 @@ class EarthEngineService:
         self._test_connection()
         return True
 
-    def _initialize_with_service_account(self) -> bool:
+    def _initialize_with_service_account(
+        self, credentials_path: str = "/app/credentials.json"
+    ) -> bool:
         """Initialize with service account credentials."""
         logger.info("🔑 Using service account credentials")
-        ee.Initialize(project=settings.earth_engine_project_id)
-        self.initialized = True
-        logger.info("🎉 Earth Engine initialized successfully with service account!")
-        logger.info(f"📡 Connected to project: {settings.earth_engine_project_id}")
-        self._test_connection()
-        return True
+
+        try:
+            # Load service account credentials from JSON file
+            with open(credentials_path, "r") as f:
+                key_data = json.load(f)
+
+            service_account_email = key_data.get("client_email")
+            if not service_account_email:
+                logger.error("❌ Service account credentials missing client_email")
+                return False
+
+            logger.info(f"🔐 Service account email: {service_account_email}")
+            logger.info(f"🔐 Using credentials file: {credentials_path}")
+
+            # Create service account credentials using the JSON key file
+            credentials = ee.ServiceAccountCredentials(
+                service_account_email, credentials_path
+            )
+
+            # Initialize Earth Engine with service account credentials
+            ee.Initialize(
+                credentials=credentials, project=settings.earth_engine_project_id
+            )
+
+            self.initialized = True
+            logger.info(
+                "🎉 Earth Engine initialized successfully with service account!"
+            )
+            logger.info(f"📡 Connected to project: {settings.earth_engine_project_id}")
+            self._test_connection()
+            return True
+
+        except Exception as e:
+            logger.error(f"❌ Service account initialization failed: {e}")
+            return False
 
     def _initialize_with_default(self) -> None:
         """Initialize with default credentials."""

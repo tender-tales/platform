@@ -1,0 +1,88 @@
+extra_css:
+  - stylesheets/extra.css
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+extra:
+  generator: false
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/tender-tales/platform
+markdown_extensions:
+  - attr_list
+  - admonition
+  - md_in_html
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.details
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.arithmatex:
+      generic: true
+  - toc:
+      permalink: true
+nav:
+  - Home: index.md
+  - Google Earth Engine Setup: earth-engine-setup.md
+  - API Reference: api.md
+plugins:
+  - search
+  - include-markdown
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: numpy
+            members_order: source
+            separate_signature: true
+            show_overloads: true
+            show_submodules: true
+            show_root_heading: false
+            show_root_full_path: true
+            show_root_toc_entry: false
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+repo_url: https://github.com/tender-tales/platform
+repo_name: tender-tales/platform
+site_name: Tender Tales Platform
+theme:
+  custom_dir: docs/overrides
+  favicon: assets/favicon-48x48.svg
+  features:
+    - content.code.annotate
+    - content.code.copy
+    - navigation.footer
+    - navigation.indexes
+    - navigation.instant
+    - navigation.tabs
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - toc.follow
+  icon:
+    repo: fontawesome/brands/github
+  logo: assets/tender-tales-logo.png
+  logo_footer: assets/tender-tales-logo.png
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: ocean-light
+      accent: ocean-deep
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: ocean-dark
+      accent: ocean-bright
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
