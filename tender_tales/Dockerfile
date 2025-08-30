@@ -2,7 +2,8 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-RUN pip install --no-cache-dir --upgrade pip && \
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/* && \
+    pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir uv && \
     groupadd -g 1000 appuser && \
     useradd -m -u 1000 -g appuser appuser && \

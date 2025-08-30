@@ -17,9 +17,12 @@ services:
       - NEXT_PUBLIC_BACKEND_PORT=${BACKEND_PORT}
       - NEXT_PUBLIC_FRONTEND_PORT=${FRONTEND_PORT}
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+        restart: true
     networks:
       - app-network
+    restart: unless-stopped
 
   backend:
     build:
@@ -36,12 +39,13 @@ services:
       - BACKEND_PORT=${BACKEND_PORT}
       - FRONTEND_PORT=${FRONTEND_PORT}
       - EARTH_ENGINE_PROJECT_ID=${EARTH_ENGINE_PROJECT_ID}
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
+      - GOOGLE_APPLICATION_CREDENTIALS=/run/secrets/earthengine-credentials
       - DEBUG=${DEBUG}
-    volumes:
-      - ${GOOGLE_APPLICATION_CREDENTIALS}:/app/credentials.json:ro
+    secrets:
+      - earthengine-credentials
     networks:
       - app-network
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:${BACKEND_PORT}/health"]
       interval: 30s
@@ -52,3 +56,7 @@ services:
 networks:
   app-network:
     driver: bridge
+
+secrets:
+  earthengine-credentials:
+    file: ./tender_tales/credentials.json

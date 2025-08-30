@@ -56,9 +56,9 @@ export default function MapPage() {
 
     const boundsKey = `${bounds.getNorth()},${bounds.getSouth()},${bounds.getEast()},${bounds.getWest()},${referenceYear},${targetYear}`
 
-    // Skip if we're already processing the same bounds and years
-    if (boundsKey === currentBounds && isLoading) {
-      console.log('⏭️  Skipping duplicate request for same bounds')
+    // Skip if we're already processing a request (prevents duplicate requests)
+    if (currentRequest.current && !currentRequest.current.signal.aborted) {
+      console.log('⏭️  Skipping request - another request is already in progress')
       return
     }
 
@@ -91,13 +91,15 @@ export default function MapPage() {
     const areaHeight = Math.abs(bounds.getNorth() - bounds.getSouth());
     const areaSize = areaWidth * areaHeight;
 
+    let calculatedEstimatedTime: string;
     if (areaSize > 25) {
-      setEstimatedTime('30-60 seconds (large area)')
+      calculatedEstimatedTime = '30-60 seconds (large area)';
     } else if (areaSize > 5) {
-      setEstimatedTime('15-30 seconds (medium area)')
+      calculatedEstimatedTime = '15-30 seconds (medium area)';
     } else {
-      setEstimatedTime('5-15 seconds (small area)')
+      calculatedEstimatedTime = '5-15 seconds (small area)';
     }
+    setEstimatedTime(calculatedEstimatedTime);
 
     // Start processing timer
     const startTime = Date.now()
@@ -106,7 +108,7 @@ export default function MapPage() {
     }, 1000)
 
     console.log(`🗺️  Loading data for bounds: ${bounds.getNorth().toFixed(3)}, ${bounds.getSouth().toFixed(3)}, ${bounds.getEast().toFixed(3)}, ${bounds.getWest().toFixed(3)}`)
-    console.log(`📈 Area size: ${areaSize.toFixed(6)}°² - estimated time: ${estimatedTime}`)
+    console.log(`📈 Area size: ${areaSize.toFixed(6)}°² - estimated time: ${calculatedEstimatedTime}`)
 
     try {
       // Load similarity heatmap with cancellation support
