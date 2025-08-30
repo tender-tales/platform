@@ -38,6 +38,12 @@ jobs:
       - name: Build images with Docker Compose
         run: |
           export COMPOSE_PROJECT_NAME=tender-tales-ci
+          export BACKEND_PORT=8000
+          export FRONTEND_PORT=3000
+          export BACKEND_HOST=localhost
+          export EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
+          export DEBUG=false
+          export BUILD_ID=${{ github.sha }}
           docker compose build backend frontend
 
       - name: Test image functionality
@@ -88,6 +94,12 @@ jobs:
       - name: Build and tag images with Docker Compose
         run: |
           export COMPOSE_PROJECT_NAME=tender-tales-gcp
+          export BACKEND_PORT=8000
+          export FRONTEND_PORT=3000
+          export BACKEND_HOST=localhost
+          export EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
+          export DEBUG=false
+          export BUILD_ID=${{ github.sha }}
           docker compose build backend frontend
 
           # Tag for GAR
