@@ -128,10 +128,7 @@ jobs:
           region: ${{ env.REGION }}
           image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_BACKEND }}:${{ github.sha }}
           flags: '--allow-unauthenticated --memory=1Gi --cpu=1'
-          env_vars: |
-            EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
-            GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
-            BACKEND_PORT=8000
+          env_vars: EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }},GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json,BACKEND_PORT=8000
 
       - name: Deploy Frontend to Cloud Run
         id: deploy-frontend
@@ -141,10 +138,7 @@ jobs:
           region: ${{ env.REGION }}
           image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_FRONTEND }}:${{ github.sha }}
           flags: '--allow-unauthenticated --memory=512Mi --cpu=1'
-          env_vars: |
-            NEXT_PUBLIC_BACKEND_HOST=${{ steps.deploy-backend.outputs.url }}
-            NEXT_PUBLIC_BACKEND_PORT=443
-            NEXT_PUBLIC_FRONTEND_PORT=3000
+          env_vars: NEXT_PUBLIC_BACKEND_HOST=${{ steps.deploy-backend.outputs.url }},NEXT_PUBLIC_BACKEND_PORT=443,NEXT_PUBLIC_FRONTEND_PORT=3000
 
       - name: Show deployment URLs
         run: |
