@@ -20,9 +20,9 @@ interface ViewState {
 }
 
 const INITIAL_VIEW_STATE: ViewState = {
-  longitude: -98.5795, // Center of the US
-  latitude: 39.8283,
-  zoom: 4
+  longitude: 80.2707, // Chennai, India
+  latitude: 13.0827,
+  zoom: 12
 }
 
 export default function MapPage() {
@@ -32,8 +32,8 @@ export default function MapPage() {
   const [showSatelliteInfo, setShowSatelliteInfo] = useState(true)
   // Removed embedding data and selected point - heatmap only now
   const [isLoading, setIsLoading] = useState(false)
-  const [referenceYear, setReferenceYear] = useState(2022)
-  const [targetYear, setTargetYear] = useState(2023)
+  const [referenceYear, setReferenceYear] = useState(2020)
+  const [targetYear, setTargetYear] = useState(2024)
   // Removed viewMode - only heatmap mode now
   const [heatmapData, setHeatmapData] = useState<any>(null)
   const [apiStatus, setApiStatus] = useState<'loading' | 'success' | 'error'>('loading')
@@ -465,199 +465,127 @@ export default function MapPage() {
         </motion.div>
       )}
 
-      {/* Info Panel */}
+      {/* Combined Info & Legend Panel */}
       {showSatelliteInfo && (
         <motion.div
-          className="absolute bottom-6 left-6 max-w-sm bg-gray-800/95 backdrop-blur-sm text-white rounded-2xl p-6 shadow-2xl border border-gray-700"
-          initial={{ x: -300, opacity: 0 }}
+          className="absolute top-24 right-6 bg-gray-800/95 backdrop-blur-sm text-white rounded-xl p-4 shadow-lg border border-gray-700 max-w-xs"
+          initial={{ x: 300, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
-          exit={{ x: -300, opacity: 0 }}
+          exit={{ x: 300, opacity: 0 }}
           transition={{ duration: 0.6, delay: 0.5 }}
         >
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
-              <Eye className="w-5 h-5 text-blue-400" />
+          {/* Header */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                <Layers className="w-4 h-4 text-blue-400" />
+              </div>
+              <h3 className="text-sm font-semibold">Change Detection</h3>
             </div>
-            <h3 className="text-lg font-semibold">Satellite Embeddings</h3>
+            <button
+              onClick={() => setShowSatelliteInfo(false)}
+              className="text-gray-400 hover:text-white transition-colors"
+            >
+              ×
+            </button>
           </div>
 
-          <div className="space-y-3 text-sm text-gray-300">
-            <p>
-              <strong className="text-white">Change Detection Analysis</strong><br/>
-              Powered by Google Earth Engine&apos;s satellite embedding dataset, comparing high-resolution imagery from {referenceYear} to {targetYear}.
-            </p>
-
-            <div className="bg-gray-700/50 rounded-lg p-3 mt-3">
-              <div className="text-xs text-gray-300">
-                <div className="mb-2 font-medium text-white">How to Read the Map:</div>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded" style={{backgroundColor: '#000080'}}></div>
-                    <span className="text-blue-300">Blue: Significant changes detected</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded" style={{backgroundColor: '#FF3300'}}></div>
-                    <span className="text-red-300">Red: Areas remained stable</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded" style={{backgroundColor: '#00CC66'}}></div>
-                    <span className="text-green-300">Green: Moderate similarity</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {heatmapData?.statistics && (
-              <div className="bg-gray-700/30 rounded-lg p-3 mt-3">
-                <div className="text-xs font-medium text-white mb-2">Analysis Statistics:</div>
-                <div className="text-xs text-gray-300 space-y-1">
-                  <div className="flex justify-between">
-                    <span>Min Similarity:</span>
-                    <span className="font-mono">{heatmapData.statistics.min_similarity.toFixed(3)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Max Similarity:</span>
-                    <span className="font-mono">{heatmapData.statistics.max_similarity.toFixed(3)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Average:</span>
-                    <span className="font-mono">{heatmapData.statistics.mean_similarity.toFixed(3)}</span>
-                  </div>
-                  {heatmapData.statistics.std_similarity && (
-                    <div className="flex justify-between">
-                      <span>Std Dev:</span>
-                      <span className="font-mono">{heatmapData.statistics.std_similarity.toFixed(3)}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {apiStatus === 'error' && lastError && (
-              <div className="mt-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg">
-                <p className="text-xs text-red-200">
-                  <strong>Connection Failed:</strong> {lastError.message}
-                </p>
-                {lastError.errorType === 'AUTHENTICATION_ERROR' && (
-                  <p className="text-xs text-red-300 mt-2">
-                    Configure Earth Engine authentication credentials to access the GOOGLE/SATELLITE_EMBEDDING/V1/ANNUAL dataset.
-                  </p>
-                )}
-                {lastError.errorType === 'CONNECTION_ERROR' && (
-                  <p className="text-xs text-red-300 mt-2">
-                    Check your internet connection and Earth Engine service status.
-                  </p>
-                )}
-              </div>
-            )}
+          {/* Description */}
+          <div className="text-xs text-gray-300 mb-4 leading-relaxed">
+            Satellite imagery comparison from <span className="text-white font-medium">{referenceYear}</span> to <span className="text-white font-medium">{targetYear}</span> using Google Earth Engine embeddings.
           </div>
 
-          <button
-            onClick={() => setShowSatelliteInfo(false)}
-            className="absolute top-2 right-2 text-gray-400 hover:text-white"
-          >
-            ×
-          </button>
+          {/* Gradient Legend */}
+          <div className="mb-4">
+            <div className="h-3 w-full rounded-md mb-2" style={{
+              background: 'linear-gradient(to right, #000004, #2C105C, #711F81, #B63679, #EE605E, #FDAE78, #FCFDBF)'
+            }}></div>
+            <div className="flex justify-between text-xs text-gray-400 mb-3">
+              <span>Most Different</span>
+              <span>Very Similar</span>
+            </div>
+
+            {/* Key color points */}
+            <div className="space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded" style={{backgroundColor: '#000004'}}></div>
+                  <span>Significant changes</span>
+                </div>
+                <span className="text-purple-400 font-mono">0.0</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded" style={{backgroundColor: '#B63679'}}></div>
+                  <span>Moderate changes</span>
+                </div>
+                <span className="text-pink-400 font-mono">0.5</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded" style={{backgroundColor: '#FCFDBF'}}></div>
+                  <span>Very similar</span>
+                </div>
+                <span className="text-yellow-300 font-mono">1.0</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Controls */}
+          {showHeatmap && (
+            <div className="mb-4 pb-4 border-b border-gray-700">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-xs font-medium">Overlay Opacity</span>
+                <span className="text-xs text-gray-400">{Math.round(heatmapOpacity * 100)}%</span>
+              </div>
+              <input
+                type="range"
+                min="0.3"
+                max="0.9"
+                step="0.1"
+                value={heatmapOpacity}
+                onChange={(e) => setHeatmapOpacity(parseFloat(e.target.value))}
+                className="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer slider"
+              />
+            </div>
+          )}
+
+          {/* Statistics */}
+          {heatmapData?.statistics && (
+            <div className="mb-4 pb-4 border-b border-gray-700">
+              <div className="text-xs font-medium text-white mb-2">Statistics</div>
+              <div className="grid grid-cols-2 gap-2 text-xs text-gray-300">
+                <div className="flex justify-between">
+                  <span>Min:</span>
+                  <span className="font-mono">{heatmapData.statistics.min_similarity.toFixed(3)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Max:</span>
+                  <span className="font-mono">{heatmapData.statistics.max_similarity.toFixed(3)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Avg:</span>
+                  <span className="font-mono">{heatmapData.statistics.mean_similarity.toFixed(3)}</span>
+                </div>
+                {heatmapData.statistics.std_similarity && (
+                  <div className="flex justify-between">
+                    <span>Std:</span>
+                    <span className="font-mono">{heatmapData.statistics.std_similarity.toFixed(3)}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Error State */}
+          {apiStatus === 'error' && lastError && (
+            <div className="p-3 bg-red-500/20 border border-red-500/30 rounded-lg">
+              <p className="text-xs text-red-200 font-medium mb-1">Connection Failed</p>
+              <p className="text-xs text-red-300">{lastError.message}</p>
+            </div>
+          )}
         </motion.div>
       )}
-
-      {/* Legend */}
-      <motion.div
-        className="absolute top-24 right-6 bg-gray-800/95 backdrop-blur-sm text-white rounded-xl p-4 shadow-lg border border-gray-700 max-w-xs"
-        initial={{ x: 300, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        transition={{ duration: 0.6, delay: 0.8 }}
-      >
-        <div className="flex items-center gap-2 mb-3">
-          <Layers className="w-4 h-4 text-blue-400" />
-          <h4 className="font-semibold text-sm">
-            Change Detection
-          </h4>
-        </div>
-
-        {/* Gradient bar */}
-        <div className="mb-3">
-          <div className="h-4 w-full rounded-md" style={{
-            background: 'linear-gradient(to right, #000004, #2C105C, #711F81, #B63679, #EE605E, #FDAE78, #FCFDBF)'
-          }}></div>
-          <div className="flex justify-between text-xs mt-1 text-gray-300">
-            <span>0.0</span>
-            <span>0.5</span>
-            <span>1.0</span>
-          </div>
-        </div>
-
-        <div className="space-y-2 text-xs">
-          <div className="flex items-center justify-between">
-            <span>Most Different</span>
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded" style={{backgroundColor: '#000004'}}></div>
-              <span className="text-purple-400">Low</span>
-            </div>
-          </div>
-          <div className="flex items-center justify-between">
-            <span>Different</span>
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded" style={{backgroundColor: '#2C105C'}}></div>
-              <span className="text-purple-300">Low-Med</span>
-            </div>
-          </div>
-          <div className="flex items-center justify-between">
-            <span>Moderate</span>
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded" style={{backgroundColor: '#711F81'}}></div>
-              <span className="text-purple-200">Medium</span>
-            </div>
-          </div>
-          <div className="flex items-center justify-between">
-            <span>Similar</span>
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded" style={{backgroundColor: '#EE605E'}}></div>
-              <span className="text-red-300">Med-High</span>
-            </div>
-          </div>
-          <div className="flex items-center justify-between">
-            <span>Very Similar</span>
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded" style={{backgroundColor: '#FCFDBF'}}></div>
-              <span className="text-yellow-200">High</span>
-            </div>
-          </div>
-          <div className="mt-3 pt-2 border-t border-gray-600">
-            <div className="text-xs text-gray-400">
-              <div className="mb-2 font-medium">Interpretation:</div>
-              <div className="text-xs leading-relaxed mb-3">
-                <span className="text-purple-400">Dark areas</span> show significant changes between {referenceYear} and {targetYear}.<br/>
-                <span className="text-yellow-200">Light areas</span> remained very similar.
-              </div>
-
-              {showHeatmap && (
-                <div className="mt-2 pt-2 border-t border-gray-600">
-                  <div className="mb-2">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="font-medium text-xs">Overlay Opacity:</span>
-                      <span className="text-xs">{Math.round(heatmapOpacity * 100)}%</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0.3"
-                      max="0.9"
-                      step="0.1"
-                      value={heatmapOpacity}
-                      onChange={(e) => setHeatmapOpacity(parseFloat(e.target.value))}
-                      className="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer slider"
-                    />
-                    <div className="flex justify-between text-xs mt-1 opacity-60">
-                      <span>More Map</span>
-                      <span>More Heatmap</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </motion.div>
 
       {/* Demo Locations Panel */}
       <motion.div
