@@ -28,7 +28,7 @@ jobs:
       id-token: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Create Earth Engine Credentials (for build)
         run: echo '${{ secrets.EARTH_ENGINE_CREDENTIALS }}' > tender_tales/credentials.json
@@ -56,7 +56,7 @@ jobs:
 
       - name: Google Auth for Testing
         if: github.actor != 'dependabot[bot]'
-        uses: 'google-github-actions/auth@v2'
+        uses: 'google-github-actions/auth@v3'
         with:
           workload_identity_provider: '${{ secrets.WIF_PROVIDER }}'
           service_account: 'earth-engine-service@ocean-health-468302.iam.gserviceaccount.com'
@@ -87,16 +87,16 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Google Auth
-        uses: 'google-github-actions/auth@v2'
+        uses: 'google-github-actions/auth@v3'
         with:
           workload_identity_provider: '${{ secrets.WIF_PROVIDER }}'
           service_account: 'earth-engine-service@ocean-health-468302.iam.gserviceaccount.com'
 
       - name: Set up Cloud SDK
-        uses: 'google-github-actions/setup-gcloud@v2'
+        uses: 'google-github-actions/setup-gcloud@v3'
 
       - name: Configure Docker for GAR
         run: gcloud auth configure-docker ${{ env.GAR_LOCATION }}-docker.pkg.dev --quiet
