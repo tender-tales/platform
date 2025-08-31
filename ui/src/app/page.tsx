@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion'
 import { Satellite, MapPin, TrendingUp, Layers, Eye, ArrowRight, Play, BarChart3, Globe2, TreePine, Building, Mountain } from 'lucide-react'
 import Image from 'next/image'
+import Footer from '@/components/footer'
 
 export default function Home() {
   const fadeInUp = {
@@ -176,7 +177,7 @@ export default function Home() {
         </div>
       </section>
 
-
+      <Footer />
     </main>
   )
 }

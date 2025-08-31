@@ -157,24 +157,6 @@ export async function fetchSimilarityHeatmap(
   return { data: result.data.data };
 }
 
-// Calculate cosine similarity between two embedding vectors
-export function calculateCosineSimilarity(a: number[], b: number[]): number {
-  if (a.length !== b.length) return 0;
-
-  const dotProduct = a.reduce((sum, val, i) => sum + val * b[i], 0);
-  const magnitudeA = Math.sqrt(a.reduce((sum, val) => sum + val * val, 0));
-  const magnitudeB = Math.sqrt(b.reduce((sum, val) => sum + val * val, 0));
-
-  return dotProduct / (magnitudeA * magnitudeB);
-}
-
-// Get color based on similarity score
-export function getSimilarityColor(similarity: number): string {
-  if (similarity >= 0.8) return '#10b981'; // green
-  if (similarity >= 0.6) return '#f59e0b'; // yellow
-  if (similarity >= 0.4) return '#f97316'; // orange
-  return '#ef4444'; // red
-}
 
 // Get type-specific color
 export function getTypeColor(type: string): string {
@@ -187,9 +169,6 @@ export function getTypeColor(type: string): string {
     default: return '#8b5cf6'; // purple
   }
 }
-
-// Earth Engine collection ID for satellite embeddings
-export const SATELLITE_EMBEDDING_COLLECTION = 'GOOGLE/SATELLITE_EMBEDDING/V1/ANNUAL';
 
 // Sample locations for similarity search demonstrations
 export const DEMO_LOCATIONS = [
