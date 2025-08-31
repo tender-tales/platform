@@ -41,3 +41,6 @@ next-env.d.ts
 
 # mkdocs
 site/
+
+# credentials
+**credentials.json

@@ -4,6 +4,11 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'Tender Tales - Satellite Change Detection Platform',
   description: 'Visualizing environmental change through Google Earth Engine satellite data. Detect and monitor changes in forest cover, urban development, and land use with AI-powered analysis.',
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/favicon.ico',
+  },
 }
 
 export default function RootLayout({
