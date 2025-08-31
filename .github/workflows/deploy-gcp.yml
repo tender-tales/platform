@@ -58,12 +58,14 @@ jobs:
             --build-arg NEXT_PUBLIC_MAPBOX_API_KEY=${{ secrets.MAPBOX_API_KEY }}
 
       - name: Google Auth for Testing
+        if: github.actor != 'dependabot[bot]'
         uses: 'google-github-actions/auth@v2'
         with:
           workload_identity_provider: '${{ secrets.WIF_PROVIDER }}'
           service_account: 'earth-engine-service@ocean-health-468302.iam.gserviceaccount.com'
 
       - name: Test image functionality
+        if: github.actor != 'dependabot[bot]'
         run: |
           # Quick smoke test - start containers and check they're healthy
           export COMPOSE_PROJECT_NAME=tender-tales-ci
