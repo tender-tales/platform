@@ -21,7 +21,7 @@ env:
   DEBUG: false
 
 jobs:
-  build:
+  build-backend:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -40,22 +40,19 @@ jobs:
           FRONTEND_PORT=${{ env.FRONTEND_PORT }}
           BACKEND_HOST=${{ env.BACKEND_HOST }}
           EARTH_ENGINE_PROJECT_ID=test-project
-          NEXT_PUBLIC_MAPBOX_API_KEY=${{ secrets.MAPBOX_API_KEY }}
           DEBUG=${{ env.DEBUG }}
           EOF
 
-      - name: Build images with Docker Compose
+      - name: Build backend image
         run: |
           export COMPOSE_PROJECT_NAME=tender-tales-ci
           export BACKEND_PORT=${{ env.BACKEND_PORT }}
           export FRONTEND_PORT=${{ env.FRONTEND_PORT }}
           export BACKEND_HOST=${{ env.BACKEND_HOST }}
           export EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
-          export NEXT_PUBLIC_MAPBOX_API_KEY=${{ secrets.MAPBOX_API_KEY }}
           export DEBUG=${{ env.DEBUG }}
           export BUILD_ID=${{ env.BUILD_ID }}
-          docker compose build backend frontend \
-            --build-arg NEXT_PUBLIC_MAPBOX_API_KEY=${{ secrets.MAPBOX_API_KEY }}
+          docker compose build backend
 
       - name: Google Auth for Testing
         if: github.actor != 'dependabot[bot]'
@@ -64,16 +61,14 @@ jobs:
           workload_identity_provider: '${{ secrets.WIF_PROVIDER }}'
           service_account: 'earth-engine-service@ocean-health-468302.iam.gserviceaccount.com'
 
-      - name: Test image functionality
+      - name: Test backend functionality
         if: github.actor != 'dependabot[bot]'
         run: |
-          # Quick smoke test - start containers and check they're healthy
           export COMPOSE_PROJECT_NAME=tender-tales-ci
           export BACKEND_PORT=${{ env.BACKEND_PORT }}
           export FRONTEND_PORT=${{ env.FRONTEND_PORT }}
           export BACKEND_HOST=${{ env.BACKEND_HOST }}
           export EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
-          export NEXT_PUBLIC_MAPBOX_API_KEY=${{ secrets.MAPBOX_API_KEY }}
           export DEBUG=${{ env.DEBUG }}
           export BUILD_ID=${{ env.BUILD_ID }}
           docker compose up -d backend
@@ -84,7 +79,7 @@ jobs:
 
   deploy:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    needs: build
+    needs: build-backend
     permissions:
       contents: read
       id-token: write
@@ -116,33 +111,24 @@ jobs:
           FRONTEND_PORT=${{ env.FRONTEND_PORT }}
           BACKEND_HOST=${{ env.BACKEND_HOST }}
           EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
-          NEXT_PUBLIC_MAPBOX_API_KEY=${{ secrets.MAPBOX_API_KEY }}
           DEBUG=${{ env.DEBUG }}
           EOF
 
-      - name: Build and tag images with Docker Compose
+      - name: Build and push backend image
         run: |
           export COMPOSE_PROJECT_NAME=tender-tales-gcp
           export BACKEND_PORT=${{ env.BACKEND_PORT }}
           export FRONTEND_PORT=${{ env.FRONTEND_PORT }}
           export BACKEND_HOST=${{ env.BACKEND_HOST }}
           export EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
-          export NEXT_PUBLIC_MAPBOX_API_KEY=${{ secrets.MAPBOX_API_KEY }}
           export DEBUG=${{ env.DEBUG }}
           export BUILD_ID=${{ env.BUILD_ID }}
-          docker compose build backend frontend \
-            --build-arg NEXT_PUBLIC_MAPBOX_API_KEY=${{ secrets.MAPBOX_API_KEY }}
+          docker compose build backend
 
-          # Tag for GAR
+          # Tag and push backend
           docker tag tender-tales/platform:backend-${{ env.BUILD_ID }} \
             ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_BACKEND }}:${{ github.sha }}
-          docker tag tender-tales/platform:frontend-${{ env.BUILD_ID }} \
-            ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_FRONTEND }}:${{ github.sha }}
-
-      - name: Push images to GAR
-        run: |
           docker push ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_BACKEND }}:${{ github.sha }}
-          docker push ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_FRONTEND }}:${{ github.sha }}
 
       - name: Deploy Backend to Cloud Run
         id: deploy-backend
@@ -156,6 +142,26 @@ jobs:
             EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
             GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
 
+      - name: Build and push frontend image with backend URL
+        run: |
+          export COMPOSE_PROJECT_NAME=tender-tales-gcp
+          export BACKEND_PORT=${{ env.BACKEND_PORT }}
+          export FRONTEND_PORT=${{ env.FRONTEND_PORT }}
+          export BACKEND_HOST=${{ env.BACKEND_HOST }}
+          export EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
+          export DEBUG=${{ env.DEBUG }}
+          export BUILD_ID=${{ env.BUILD_ID }}
+
+          # Build frontend with the deployed backend URL
+          docker compose build frontend \
+            --build-arg NEXT_PUBLIC_MAPBOX_API_KEY=${{ secrets.MAPBOX_API_KEY }} \
+            --build-arg NEXT_PUBLIC_BACKEND_URL=${{ steps.deploy-backend.outputs.url }}
+
+          # Tag and push frontend
+          docker tag tender-tales/platform:frontend-${{ env.BUILD_ID }} \
+            ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_FRONTEND }}:${{ github.sha }}
+          docker push ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_FRONTEND }}:${{ github.sha }}
+
       - name: Deploy Frontend to Cloud Run
         id: deploy-frontend
         uses: google-github-actions/deploy-cloudrun@v2
@@ -164,9 +170,6 @@ jobs:
           region: ${{ env.REGION }}
           image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_FRONTEND }}:${{ github.sha }}
           flags: '--allow-unauthenticated --memory=512Mi --cpu=1 --timeout=300 --max-instances=10'
-          env_vars: |
-            BACKEND_URL=${{ steps.deploy-backend.outputs.url }}
-            NEXT_PUBLIC_MAPBOX_API_KEY=${{ secrets.MAPBOX_API_KEY }}
 
       - name: Show deployment URLs
         run: |

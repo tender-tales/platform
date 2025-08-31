@@ -28,41 +28,13 @@ export interface HealthStatus {
 
 class ApiClient {
   private baseUrl: string;
-  private configLoaded: boolean = false;
 
   constructor() {
-    this.baseUrl = 'http://localhost:8000'; // Default for development
-    this.initializeConfig();
-  }
-
-  private async initializeConfig() {
-    if (this.configLoaded) return;
-
-    try {
-      // Fetch runtime configuration from our own API endpoint
-      const response = await fetch('/api/config');
-      if (response.ok) {
-        const config = await response.json();
-        this.baseUrl = config.backendUrl;
-        console.log(`🔗 API Client configured with runtime baseUrl: ${this.baseUrl}`);
-      } else {
-        console.warn('⚠️ Could not fetch runtime config, using default URL');
-      }
-    } catch (error) {
-      console.warn('⚠️ Error fetching runtime config:', error);
-    }
-
-    this.configLoaded = true;
-  }
-
-  async ensureConfigured() {
-    if (!this.configLoaded) {
-      await this.initializeConfig();
-    }
+    this.baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+    console.log(`🔗 API Client initialized with baseUrl: ${this.baseUrl}`);
   }
 
   async healthCheck(): Promise<{ data?: HealthStatus; error?: string }> {
-    await this.ensureConfigured();
 
     try {
       console.log('🏥 Checking backend health...');
@@ -107,7 +79,6 @@ class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<{ data?: T; error?: string }> {
-    await this.ensureConfigured();
 
     const maxRetries = 2;
     let lastError: string = '';
