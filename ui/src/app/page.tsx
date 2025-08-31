@@ -62,16 +62,14 @@ export default function Home() {
               className="text-2xl md:text-3xl text-gray-200 mb-6 font-light"
               variants={fadeInUp}
             >
-              Visualizing Our Changing Planet
+              Documenting the stories of a changing planet
             </motion.p>
 
             <motion.p
               className="text-lg md:text-xl text-gray-300 mb-12 max-w-3xl mx-auto leading-relaxed"
               variants={fadeInUp}
             >
-              Harness the power of Google Earth Engine satellite data to detect and monitor
-              environmental changes. Track deforestation, urban growth, agricultural expansion,
-              and climate impacts with AI-powered analysis.
+              Our planet is transforming before our eyes, and human activity is the leading force behind this change. Our mission is to document how these vulnerable ecosystems are changing and impacting the rich fabric of biodiversity on which all life depends.
             </motion.p>
 
             <motion.div
@@ -106,76 +104,6 @@ export default function Home() {
         </motion.div>
       </section>
 
-      {/* Platform Overview */}
-      <section className="py-20 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <motion.div
-            className="text-center mb-16"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
-          >
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-              Powered by Satellite Intelligence
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              Our platform processes vast amounts of satellite imagery from Google Earth Engine
-              to identify patterns, track changes, and provide insights into our planet&apos;s transformation.
-            </p>
-          </motion.div>
-
-          <motion.div
-            className="grid md:grid-cols-3 gap-8 mb-16"
-            initial="initial"
-            whileInView="animate"
-            variants={stagger}
-            viewport={{ once: true }}
-          >
-            <motion.div
-              className="text-center p-8 bg-white rounded-2xl shadow-lg hover:shadow-xl transition duration-300"
-              variants={fadeInUp}
-            >
-              <div className="w-20 h-20 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <Globe2 className="w-10 h-10 text-blue-600" />
-              </div>
-              <h3 className="text-2xl font-semibold text-gray-800 mb-4">Global Coverage</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Access satellite imagery covering the entire planet with regular updates
-                to track changes over time across any region.
-              </p>
-            </motion.div>
-
-            <motion.div
-              className="text-center p-8 bg-white rounded-2xl shadow-lg hover:shadow-xl transition duration-300"
-              variants={fadeInUp}
-            >
-              <div className="w-20 h-20 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <Eye className="w-10 h-10 text-green-600" />
-              </div>
-              <h3 className="text-2xl font-semibold text-gray-800 mb-4">AI Detection</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Machine learning models trained on labeled datasets automatically detect
-                and classify environmental changes with high accuracy.
-              </p>
-            </motion.div>
-
-            <motion.div
-              className="text-center p-8 bg-white rounded-2xl shadow-lg hover:shadow-xl transition duration-300"
-              variants={fadeInUp}
-            >
-              <div className="w-20 h-20 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <TrendingUp className="w-10 h-10 text-purple-600" />
-              </div>
-              <h3 className="text-2xl font-semibold text-gray-800 mb-4">Trend Analysis</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Visualize temporal changes and identify trends in land use,
-                vegetation cover, and human development patterns.
-              </p>
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
 
       <Footer />
     </main>
