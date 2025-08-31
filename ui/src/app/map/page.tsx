@@ -47,6 +47,7 @@ export default function MapPage() {
   const loadDataTimeout = useRef<NodeJS.Timeout | null>(null)
   const currentRequest = useRef<AbortController | null>(null)
   const processingTimer = useRef<NodeJS.Timeout | null>(null)
+  const initialLoadComplete = useRef<boolean>(false)
 
   const loadData = useCallback(async (cancelPrevious = true) => {
     if (!mapRef.current) return;
@@ -56,12 +57,6 @@ export default function MapPage() {
 
     const boundsKey = `${bounds.getNorth()},${bounds.getSouth()},${bounds.getEast()},${bounds.getWest()},${referenceYear},${targetYear}`
 
-    // Skip if we're already processing a request (prevents duplicate requests)
-    if (currentRequest.current && !currentRequest.current.signal.aborted) {
-      console.log('⏭️  Skipping request - another request is already in progress')
-      return
-    }
-
     // Cancel any existing request safely
     if (cancelPrevious && currentRequest.current) {
       try {
@@ -69,8 +64,6 @@ export default function MapPage() {
         if (!currentRequest.current.signal.aborted) {
           console.log('🚫 Cancelling previous request')
           currentRequest.current.abort()
-        } else {
-          console.log('🚫 Previous request already aborted')
         }
       } catch (error) {
         console.warn('⚠️  Error aborting previous request:', error)
@@ -170,7 +163,7 @@ export default function MapPage() {
         processingTimer.current = null
       }
     }
-  }, [referenceYear, targetYear])
+  }, [referenceYear, targetYear, mapRef])
 
   const handleViewStateChange = useCallback((evt: any) => {
     setViewState(evt.viewState)
@@ -180,11 +173,11 @@ export default function MapPage() {
       clearTimeout(loadDataTimeout.current)
     }
 
-    // Immediately cancel any ongoing request and start new one with shorter debounce
+    // Debounce the data loading to avoid excessive API calls
     loadDataTimeout.current = setTimeout(() => {
       console.log('🗺️  Map moved, updating data...')
       loadData(true) // true = cancel previous request
-    }, 300) // Reduced debounce for better responsiveness
+    }, 500) // Slightly longer debounce for stability
   }, [loadData])
 
   const handleGoBack = () => {
@@ -253,12 +246,86 @@ export default function MapPage() {
       } else {
         console.log('✅ Backend connection successful');
         // Load initial data after confirming connection
-        setTimeout(() => loadData(false), 1000); // false = don't cancel previous (there is none)
+        setTimeout(() => {
+          loadData(false); // false = don't cancel previous (there is none)
+          initialLoadComplete.current = true;
+        }, 1000);
       }
     };
 
     testConnection();
   }, [loadData])
+
+  // Reload data when years change (but only after initial load is complete)
+  const prevYearsRef = useRef({ referenceYear, targetYear })
+  useEffect(() => {
+    const prevYears = prevYearsRef.current
+    prevYearsRef.current = { referenceYear, targetYear }
+
+    // Only reload if years actually changed and initial load is complete
+    if (initialLoadComplete.current &&
+        (prevYears.referenceYear !== referenceYear || prevYears.targetYear !== targetYear)) {
+      console.log(`🔄 Year changed from ${prevYears.referenceYear} → ${prevYears.targetYear} to ${referenceYear} → ${targetYear}, reloading data...`);
+
+      // Cancel any pending reload
+      if (loadDataTimeout.current) {
+        clearTimeout(loadDataTimeout.current)
+      }
+
+      // Trigger reload through map bounds change simulation
+      loadDataTimeout.current = setTimeout(() => {
+        if (mapRef.current) {
+          const bounds = mapRef.current.getBounds()
+          if (bounds) {
+            // Create a fresh loadData call with current years
+            const loadCurrentData = async () => {
+              if (currentRequest.current && !currentRequest.current.signal.aborted) {
+                currentRequest.current.abort()
+              }
+
+              const abortController = new AbortController()
+              currentRequest.current = abortController
+
+              setIsLoading(true)
+              setApiStatus('loading')
+
+              try {
+                const result = await fetchSimilarityHeatmap({
+                  north: bounds.getNorth(),
+                  south: bounds.getSouth(),
+                  east: bounds.getEast(),
+                  west: bounds.getWest()
+                }, referenceYear, targetYear, abortController.signal)
+
+                if (!abortController.signal.aborted) {
+                  if (result.error) {
+                    setLastError(result.error)
+                    setApiStatus('error')
+                    setHeatmapData(null)
+                  } else {
+                    setHeatmapData(result.data)
+                    setApiStatus('success')
+                    setLastError(null)
+                  }
+                }
+              } catch (error) {
+                if (!abortController.signal.aborted) {
+                  console.error('Error loading data:', error)
+                  setApiStatus('error')
+                }
+              } finally {
+                if (!abortController.signal.aborted) {
+                  setIsLoading(false)
+                }
+              }
+            }
+
+            loadCurrentData()
+          }
+        }
+      }, 100)
+    }
+  }, [referenceYear, targetYear])
 
   if (!MAPBOX_TOKEN) {
     return (
@@ -349,9 +416,13 @@ export default function MapPage() {
                 {showHeatmap && <span className="text-xs opacity-75">(Neutral Map)</span>}
               </button>
               <button
-                onClick={() => loadData(true)}
+                onClick={() => {
+                  console.log('🔄 Manual refresh triggered');
+                  loadData(true);
+                }}
                 disabled={isLoading}
-                className="flex items-center gap-2 text-white hover:text-blue-400 transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 text-white hover:text-blue-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title={isLoading ? 'Loading in progress...' : 'Refresh similarity data for current view'}
               >
                 <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
                 {isLoading ? 'Loading' : 'Refresh'}

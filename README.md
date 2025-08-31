@@ -1,5 +1,13 @@
 # Tender Tales Platform
 
+----------------------------------------------------------------------------------------
+
+[![code checks](https://github.com/tender-tales/platform/actions/workflows/code_checks.yml/badge.svg)](https://github.com/tender-tales/platform/actions/workflows/code_checks.yml)
+[![unit tests](https://github.com/tender-tales/platform/actions/workflows/unit_tests.yml/badge.svg)](https://github.com/tender-tales/platform/actions/workflows/unit_tests.yml)
+[![docs](https://github.com/tender-tales/platform/actions/workflows/docs.yml/badge.svg)](https://github.com/tender-tales/platform/actions/workflows/docs.yml)
+[![codecov](https://codecov.io/github/tender-tales/platform/graph/badge.svg?token=83MYFZ3UPA)](https://codecov.io/github/tender-tales/platform)
+![GitHub License](https://img.shields.io/github/license/tender-tales/platform)
+
 A full-stack platform for satellite data analysis and similarity mapping using Google Earth Engine.
 
 ## Architecture
