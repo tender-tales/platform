@@ -163,7 +163,7 @@ jobs:
           image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_FRONTEND }}:${{ github.sha }}
           flags: '--allow-unauthenticated --memory=512Mi --cpu=1 --timeout=300 --max-instances=10'
           env_vars: |
-            NEXT_PUBLIC_BACKEND_URL=${{ steps.deploy-backend.outputs.url }}
+            BACKEND_URL=${{ steps.deploy-backend.outputs.url }}
             NEXT_PUBLIC_MAPBOX_API_KEY=${{ secrets.MAPBOX_API_KEY }}
 
       - name: Show deployment URLs
