@@ -28,7 +28,7 @@ jobs:
       id-token: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Create Earth Engine Credentials (for build)
         run: echo '${{ secrets.EARTH_ENGINE_CREDENTIALS }}' > tender_tales/credentials.json
@@ -90,7 +90,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Google Auth
         uses: 'google-github-actions/auth@v2'
