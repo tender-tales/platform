@@ -40,6 +40,7 @@ jobs:
           cat > .env.production << EOF
           BACKEND_PORT=${{ env.BACKEND_PORT }}
           FRONTEND_PORT=${{ env.FRONTEND_PORT }}
+          MCP_PORT=${{ env.MCP_PORT }}
           BACKEND_HOST=${{ env.BACKEND_HOST }}
           EARTH_ENGINE_PROJECT_ID=test-project
           DEBUG=${{ env.DEBUG }}
@@ -73,36 +74,42 @@ jobs:
           export DEBUG=${{ env.DEBUG }}
           export BUILD_ID=${{ env.BUILD_ID }}
 
-          # Run the MCP server container in detached mode
+          # Test MCP server components without running the server
+          echo "=== Testing MCP Server Components ==="
+          docker run --rm \
+            -e EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }} \
+            -e MCP_PORT=${{ env.MCP_PORT }} \
+            -e DEBUG=${{ env.DEBUG }} \
+            tender-tales/platform:mcp-server-${{ env.BUILD_ID }} \
+            uv run python test_mcp_client.py
+
+          # Test that the server can start successfully (run briefly)
+          echo "=== Testing MCP Server Startup ==="
           docker run -d \
             --name mcp-server-test-${{ env.BUILD_ID }} \
-            -p ${{ env.MCP_PORT }}:${{ env.MCP_PORT }} \
             -e EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }} \
             -e MCP_PORT=${{ env.MCP_PORT }} \
             -e DEBUG=${{ env.DEBUG }} \
             tender-tales/platform:mcp-server-${{ env.BUILD_ID }}
 
-          # Wait for server to start
-          sleep 30
+          # Wait for server to initialize
+          sleep 10
 
-          # Check if container is running
-          docker ps | grep mcp-server-test-${{ env.BUILD_ID }}
+          # Check if container is still running (indicates successful startup)
+          if docker ps | grep mcp-server-test-${{ env.BUILD_ID }}; then
+            echo "✓ MCP server started successfully"
+          else
+            echo "✗ MCP server failed to start"
+            exit 1
+          fi
 
-          # Check container logs for startup issues
-          echo "=== MCP Server Logs ==="
+          # Check container logs for any startup issues
+          echo "=== MCP Server Startup Logs ==="
           docker logs mcp-server-test-${{ env.BUILD_ID }}
 
-          # Run the test client inside the container to test MCP functionality
-          echo "=== Running MCP Client Tests ==="
-          docker exec mcp-server-test-${{ env.BUILD_ID }} uv run python test_mcp_client.py
-
-          # Check server health by testing HTTP endpoint if available
-          echo "=== Testing Server Health ==="
-          docker exec mcp-server-test-${{ env.BUILD_ID }} curl -f http://localhost:${{ env.MCP_PORT }}/health || echo "Health endpoint not available (expected for MCP-only server)"
-
           # Clean up
-          docker stop mcp-server-test-${{ env.BUILD_ID }}
-          docker rm mcp-server-test-${{ env.BUILD_ID }}
+          docker stop mcp-server-test-${{ env.BUILD_ID }} || true
+          docker rm mcp-server-test-${{ env.BUILD_ID }} || true
 
       - name: Google Auth for Testing
         if: github.actor != 'dependabot[bot]'
@@ -159,6 +166,7 @@ jobs:
           cat > .env.production << EOF
           BACKEND_PORT=${{ env.BACKEND_PORT }}
           FRONTEND_PORT=${{ env.FRONTEND_PORT }}
+          MCP_PORT=${{ env.MCP_PORT }}
           BACKEND_HOST=${{ env.BACKEND_HOST }}
           EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
           DEBUG=${{ env.DEBUG }}
@@ -214,6 +222,7 @@ jobs:
           env_vars: |
             EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
             GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
+            MCP_PORT=${{ env.MCP_PORT }}
 
       - name: Build and push frontend image with backend URL
         run: |
