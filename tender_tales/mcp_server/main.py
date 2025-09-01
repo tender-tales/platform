@@ -5,10 +5,8 @@ A Model Context Protocol server that provides Google Earth Engine capabilities
 for geospatial analysis and environmental monitoring.
 """
 
-import asyncio
 import json
 import os
-import signal
 from typing import Any, Optional, cast
 
 import ee
@@ -204,6 +202,28 @@ async def geocode_location(location_name: str) -> dict[str, Any]:
     return cast(dict[str, Any], result)
 
 
+@mcp.custom_route("/health", methods=["GET"])  # type: ignore[misc]
+async def health_check() -> dict[str, str]:
+    """Health check endpoint for Docker and Cloud Run."""
+    try:
+        # Test Earth Engine connection if available
+        if config.earth_engine_project_id:
+            test_image = ee.Image("USGS/SRTMGL1_003")
+            test_image.bandNames().getInfo()
+            earth_engine_status = "healthy"
+        else:
+            earth_engine_status = "not_configured"
+    except Exception:
+        earth_engine_status = "unhealthy"
+
+    return {
+        "status": "healthy",
+        "earth_engine": earth_engine_status,
+        "mcp_server": "running",
+        "project_id": config.earth_engine_project_id or "not_set",
+    }
+
+
 def _initialize_earth_engine() -> bool:
     """Initialize Earth Engine with proper authentication."""
     logger.info("Initializing Google Earth Engine...")
@@ -397,30 +417,10 @@ def main() -> None:
 
         # Run the MCP server
         logger.info("Starting Kadal Earth Engine MCP Server")
-        logger.info("MCP server ready for connections")
+        logger.info(f"Starting MCP server on port {config.mcp_port}")
 
-        # Keep the server running
-        async def keep_alive() -> None:
-            logger.info("MCP server running, waiting for connections...")
-            try:
-                while True:
-                    await asyncio.sleep(60)
-                    logger.debug("MCP server heartbeat")
-            except asyncio.CancelledError:
-                logger.info("MCP server shutdown requested")
-
-        # Set up signal handlers for graceful shutdown
-        def signal_handler(signum: int, frame: Any) -> None:
-            logger.info(f"Received signal {signum}, shutting down gracefully")
-            raise KeyboardInterrupt
-
-        signal.signal(signal.SIGTERM, signal_handler)
-        signal.signal(signal.SIGINT, signal_handler)
-
-        try:
-            asyncio.run(keep_alive())
-        except KeyboardInterrupt:
-            logger.info("MCP server stopped")
+        # For Docker containers, we need to use SSE transport for persistent HTTP server
+        mcp.run(transport="sse")
 
     except Exception as e:
         logger.error(f"Failed to start MCP server: {e}")

@@ -64,9 +64,9 @@ services:
     image: tender-tales/platform:mcp-server-dev-${BUILD_ID:-latest}
     env_file: .env.development
     ports:
-      - "8001:8001"
+      - "${MCP_PORT}:${MCP_PORT}"
     environment:
-      - MCP_PORT=8001
+      - MCP_PORT=${MCP_PORT}
       - EARTH_ENGINE_PROJECT_ID=${EARTH_ENGINE_PROJECT_ID}
       - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
       - DEBUG=${DEBUG}
@@ -77,7 +77,7 @@ services:
       - app-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:${MCP_PORT}/health"]
       interval: 30s
       timeout: 10s
       retries: 3
