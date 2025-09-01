@@ -65,6 +65,45 @@ jobs:
           export BUILD_ID=${{ env.BUILD_ID }}
           docker build -t tender-tales/platform:mcp-server-${{ env.BUILD_ID }} ./tender_tales/mcp_server
 
+      - name: Test MCP server functionality
+        if: github.actor != 'dependabot[bot]'
+        run: |
+          export MCP_PORT=${{ env.MCP_PORT }}
+          export EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
+          export DEBUG=${{ env.DEBUG }}
+          export BUILD_ID=${{ env.BUILD_ID }}
+
+          # Run the MCP server container in detached mode
+          docker run -d \
+            --name mcp-server-test-${{ env.BUILD_ID }} \
+            -p ${{ env.MCP_PORT }}:${{ env.MCP_PORT }} \
+            -e EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }} \
+            -e MCP_PORT=${{ env.MCP_PORT }} \
+            -e DEBUG=${{ env.DEBUG }} \
+            tender-tales/platform:mcp-server-${{ env.BUILD_ID }}
+
+          # Wait for server to start
+          sleep 30
+
+          # Check if container is running
+          docker ps | grep mcp-server-test-${{ env.BUILD_ID }}
+
+          # Check container logs for startup issues
+          echo "=== MCP Server Logs ==="
+          docker logs mcp-server-test-${{ env.BUILD_ID }}
+
+          # Run the test client inside the container to test MCP functionality
+          echo "=== Running MCP Client Tests ==="
+          docker exec mcp-server-test-${{ env.BUILD_ID }} python test_mcp_client.py
+
+          # Check server health by testing HTTP endpoint if available
+          echo "=== Testing Server Health ==="
+          docker exec mcp-server-test-${{ env.BUILD_ID }} curl -f http://localhost:${{ env.MCP_PORT }}/health || echo "Health endpoint not available (expected for MCP-only server)"
+
+          # Clean up
+          docker stop mcp-server-test-${{ env.BUILD_ID }}
+          docker rm mcp-server-test-${{ env.BUILD_ID }}
+
       - name: Google Auth for Testing
         if: github.actor != 'dependabot[bot]'
         uses: 'google-github-actions/auth@v3'
