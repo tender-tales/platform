@@ -198,6 +198,10 @@ jobs:
         run: |
           export BUILD_ID=${{ env.BUILD_ID }}
           export EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
+
+          # Copy credentials to MCP server directory for Docker build
+          cp tender_tales/credentials.json tender_tales/mcp_server/credentials.json
+
           docker build -t tender-tales/platform:mcp-server-${{ env.BUILD_ID }} \
             --build-arg MCP_PORT=${{ env.MCP_PORT }} \
             ./tender_tales/mcp_server
@@ -226,7 +230,7 @@ jobs:
           service: ${{ env.SERVICE_MCP }}
           region: ${{ env.REGION }}
           image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_MCP }}:${{ github.sha }}
-          flags: '--allow-unauthenticated --memory=1Gi --cpu=1 --timeout=300 --max-instances=10 --cpu-boost'
+          flags: '--allow-unauthenticated --memory=1Gi --cpu=1 --timeout=300 --max-instances=10 --cpu-boost --cpu-throttling --startup-cpu-boost'
           env_vars: |
             EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
             GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
