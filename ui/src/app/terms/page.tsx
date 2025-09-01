@@ -31,7 +31,7 @@ export default function TermsPage() {
           <div className="flex items-center justify-between">
             <button
               onClick={handleGoBack}
-              className="flex items-center gap-2 text-white hover:text-blue-400 transition-colors"
+              className="flex items-center gap-2 text-white hover:text-ocean-400 transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
               Back to Home
@@ -64,7 +64,7 @@ export default function TermsPage() {
         >
           <div className="mb-12">
             <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              Terms of <span className="text-blue-400">Service</span>
+              Terms of <span className="text-ocean-400">Service</span>
             </h1>
             <p className="text-gray-400 text-lg">
               Last updated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
@@ -73,7 +73,7 @@ export default function TermsPage() {
 
           <div className="space-y-12">
             <section>
-              <h2 className="text-2xl font-bold mb-4 text-blue-400">Agreement to Terms</h2>
+              <h2 className="text-2xl font-bold mb-4 text-ocean-400">Agreement to Terms</h2>
               <p className="text-gray-300 text-lg leading-relaxed">
                 By accessing and using the Tender Tales platform, you accept and agree to be bound by these Terms of Service.
                 If you do not agree to abide by these terms, please do not use our services.
@@ -81,7 +81,7 @@ export default function TermsPage() {
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold mb-4 text-blue-400">Use of Services</h2>
+              <h2 className="text-2xl font-bold mb-4 text-ocean-400">Use of Services</h2>
               <div className="text-gray-300 text-lg leading-relaxed space-y-4">
                 <p>You may use our services for:</p>
                 <ul className="list-disc list-inside space-y-2 ml-4">
@@ -94,7 +94,7 @@ export default function TermsPage() {
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold mb-4 text-blue-400">Prohibited Uses</h2>
+              <h2 className="text-2xl font-bold mb-4 text-ocean-400">Prohibited Uses</h2>
               <div className="text-gray-300 text-lg leading-relaxed space-y-4">
                 <p>You agree not to:</p>
                 <ul className="list-disc list-inside space-y-2 ml-4">
@@ -108,7 +108,7 @@ export default function TermsPage() {
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold mb-4 text-blue-400">Data and Content</h2>
+              <h2 className="text-2xl font-bold mb-4 text-ocean-400">Data and Content</h2>
               <p className="text-gray-300 text-lg leading-relaxed">
                 The environmental data, satellite imagery, and visualizations provided through our platform are for
                 informational purposes only. While we strive for accuracy, we cannot guarantee the completeness or
@@ -117,7 +117,7 @@ export default function TermsPage() {
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold mb-4 text-blue-400">Intellectual Property</h2>
+              <h2 className="text-2xl font-bold mb-4 text-ocean-400">Intellectual Property</h2>
               <p className="text-gray-300 text-lg leading-relaxed">
                 The service and its original content, features, and functionality are owned by Tender Tales Inc. and are
                 protected by international copyright, trademark, patent, trade secret, and other intellectual property laws.
@@ -125,7 +125,7 @@ export default function TermsPage() {
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold mb-4 text-blue-400">Disclaimer of Warranties</h2>
+              <h2 className="text-2xl font-bold mb-4 text-ocean-400">Disclaimer of Warranties</h2>
               <p className="text-gray-300 text-lg leading-relaxed">
                 The service is provided on an &quot;AS IS&quot; and &quot;AS AVAILABLE&quot; basis. We make no warranties, expressed or implied,
                 and hereby disclaim all other warranties including implied warranties of merchantability, fitness for a
@@ -134,7 +134,7 @@ export default function TermsPage() {
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold mb-4 text-blue-400">Limitation of Liability</h2>
+              <h2 className="text-2xl font-bold mb-4 text-ocean-400">Limitation of Liability</h2>
               <p className="text-gray-300 text-lg leading-relaxed">
                 In no event shall Tender Tales Inc., its directors, employees, or agents be liable for any indirect,
                 incidental, special, consequential, or punitive damages arising out of your use of the service.
@@ -142,7 +142,7 @@ export default function TermsPage() {
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold mb-4 text-blue-400">Termination</h2>
+              <h2 className="text-2xl font-bold mb-4 text-ocean-400">Termination</h2>
               <p className="text-gray-300 text-lg leading-relaxed">
                 We may terminate or suspend your access to our service immediately, without prior notice, for any reason,
                 including breach of these Terms of Service.
@@ -150,7 +150,7 @@ export default function TermsPage() {
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold mb-4 text-blue-400">Changes to Terms</h2>
+              <h2 className="text-2xl font-bold mb-4 text-ocean-400">Changes to Terms</h2>
               <p className="text-gray-300 text-lg leading-relaxed">
                 We reserve the right to modify these terms at any time. We will notify users of any material changes
                 by posting the updated terms on this page with a new effective date.
@@ -158,7 +158,7 @@ export default function TermsPage() {
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold mb-4 text-blue-400">Contact Information</h2>
+              <h2 className="text-2xl font-bold mb-4 text-ocean-400">Contact Information</h2>
               <p className="text-gray-300 text-lg leading-relaxed">
                 If you have any questions about these Terms of Service, please contact us through our platform
                 or reach out to our support team.

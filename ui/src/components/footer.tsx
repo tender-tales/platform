@@ -28,8 +28,8 @@ export default function Footer() {
                 className="w-12 h-12"
               />
               <span className="text-2xl font-bold">
-                <span className="text-white">Tender</span>
-                <span className="text-blue-400">Tales</span>
+                <span className="text-white">Tender </span>
+                <span className="text-ocean-400">Tales</span>
               </span>
             </div>
           </div>

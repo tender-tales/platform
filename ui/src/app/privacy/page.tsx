@@ -31,7 +31,7 @@ export default function PrivacyPage() {
           <div className="flex items-center justify-between">
             <button
               onClick={handleGoBack}
-              className="flex items-center gap-2 text-white hover:text-blue-400 transition-colors"
+              className="flex items-center gap-2 text-white hover:text-ocean-400 transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
               Back to Home
@@ -64,7 +64,7 @@ export default function PrivacyPage() {
         >
           <div className="mb-12">
             <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              Privacy <span className="text-blue-400">Policy</span>
+              Privacy <span className="text-ocean-400">Policy</span>
             </h1>
             <p className="text-gray-400 text-lg">
               Last updated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
@@ -73,7 +73,7 @@ export default function PrivacyPage() {
 
           <div className="space-y-12">
             <section>
-              <h2 className="text-2xl font-bold mb-4 text-blue-400">Introduction</h2>
+              <h2 className="text-2xl font-bold mb-4 text-ocean-400">Introduction</h2>
               <p className="text-gray-300 text-lg leading-relaxed">
                 At Tender Tales, we are committed to protecting your privacy and ensuring the security of your personal information.
                 This Privacy Policy explains how we collect, use, and safeguard your data when you use our platform.
@@ -81,7 +81,7 @@ export default function PrivacyPage() {
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold mb-4 text-blue-400">Information We Collect</h2>
+              <h2 className="text-2xl font-bold mb-4 text-ocean-400">Information We Collect</h2>
               <div className="text-gray-300 text-lg leading-relaxed space-y-4">
                 <p>We may collect the following types of information:</p>
                 <ul className="list-disc list-inside space-y-2 ml-4">
@@ -94,7 +94,7 @@ export default function PrivacyPage() {
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold mb-4 text-blue-400">How We Use Your Information</h2>
+              <h2 className="text-2xl font-bold mb-4 text-ocean-400">How We Use Your Information</h2>
               <div className="text-gray-300 text-lg leading-relaxed space-y-4">
                 <p>We use collected information to:</p>
                 <ul className="list-disc list-inside space-y-2 ml-4">
@@ -107,7 +107,7 @@ export default function PrivacyPage() {
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold mb-4 text-blue-400">Data Security</h2>
+              <h2 className="text-2xl font-bold mb-4 text-ocean-400">Data Security</h2>
               <p className="text-gray-300 text-lg leading-relaxed">
                 We implement appropriate security measures to protect your personal information against unauthorized access,
                 alteration, disclosure, or destruction. However, no method of transmission over the internet is 100% secure.
@@ -115,7 +115,7 @@ export default function PrivacyPage() {
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold mb-4 text-blue-400">Third-Party Services</h2>
+              <h2 className="text-2xl font-bold mb-4 text-ocean-400">Third-Party Services</h2>
               <p className="text-gray-300 text-lg leading-relaxed">
                 Our platform may use third-party services such as mapping providers and analytics tools.
                 These services have their own privacy policies, and we encourage you to review them.
@@ -123,7 +123,7 @@ export default function PrivacyPage() {
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold mb-4 text-blue-400">Your Rights</h2>
+              <h2 className="text-2xl font-bold mb-4 text-ocean-400">Your Rights</h2>
               <p className="text-gray-300 text-lg leading-relaxed">
                 You have the right to access, update, or delete your personal information.
                 If you have any questions or requests regarding your data, please contact us.
@@ -131,7 +131,7 @@ export default function PrivacyPage() {
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold mb-4 text-blue-400">Contact Us</h2>
+              <h2 className="text-2xl font-bold mb-4 text-ocean-400">Contact Us</h2>
               <p className="text-gray-300 text-lg leading-relaxed">
                 If you have any questions about this Privacy Policy or our data practices,
                 please contact us through our platform or reach out to our team directly.

@@ -25,7 +25,7 @@ export default function Home() {
       {/* Hero Section with Satellite Imagery Background */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         {/* NASA Earth Satellite Timelapse Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-green-800 to-blue-900">
+        <div className="absolute inset-0 bg-gradient-to-br from-ocean-900 via-green-800 to-ocean-900">
           <video
             className="w-full h-full object-cover opacity-90"
             autoPlay
@@ -63,8 +63,8 @@ export default function Home() {
                 className="mr-4"
               />
               <h1 className="text-6xl md:text-8xl font-bold">
-                <span className="text-white">Tender</span>
-                <span className="text-blue-400">Tales</span>
+                <span className="text-white">Tender </span>
+                <span className="text-ocean-400">Tales</span>
               </h1>
             </motion.div>
 
