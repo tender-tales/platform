@@ -66,6 +66,13 @@ jobs:
           export BUILD_ID=${{ env.BUILD_ID }}
           docker build -t tender-tales/platform:mcp-server-${{ env.BUILD_ID }} ./tender_tales/mcp_server
 
+      - name: Google Auth for Testing
+        if: github.actor != 'dependabot[bot]'
+        uses: 'google-github-actions/auth@v3'
+        with:
+          workload_identity_provider: '${{ secrets.WIF_PROVIDER }}'
+          service_account: 'earth-engine-service@ocean-health-468302.iam.gserviceaccount.com'
+
       - name: Test MCP server functionality
         if: github.actor != 'dependabot[bot]'
         run: |
@@ -110,13 +117,6 @@ jobs:
           # Clean up
           docker stop mcp-server-test-${{ env.BUILD_ID }} || true
           docker rm mcp-server-test-${{ env.BUILD_ID }} || true
-
-      - name: Google Auth for Testing
-        if: github.actor != 'dependabot[bot]'
-        uses: 'google-github-actions/auth@v3'
-        with:
-          workload_identity_provider: '${{ secrets.WIF_PROVIDER }}'
-          service_account: 'earth-engine-service@ocean-health-468302.iam.gserviceaccount.com'
 
       - name: Test backend functionality
         if: github.actor != 'dependabot[bot]'

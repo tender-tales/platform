@@ -425,9 +425,7 @@ def main() -> None:
 
         async def run_server() -> None:
             async with stdio_server() as (read_stream, write_stream):
-                await mcp.run(
-                    read_stream, write_stream, mcp.create_initialization_options()
-                )
+                await mcp.run(read_stream, write_stream)
 
         asyncio.run(run_server())
 
