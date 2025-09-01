@@ -202,6 +202,28 @@ async def geocode_location(location_name: str) -> dict[str, Any]:
     return cast(dict[str, Any], result)
 
 
+@mcp.custom_route("/health", methods=["GET"])  # type: ignore[misc]
+async def health_check() -> dict[str, str]:
+    """Health check endpoint for Docker and Cloud Run."""
+    try:
+        # Test Earth Engine connection if available
+        if config.earth_engine_project_id:
+            test_image = ee.Image("USGS/SRTMGL1_003")
+            test_image.bandNames().getInfo()
+            earth_engine_status = "healthy"
+        else:
+            earth_engine_status = "not_configured"
+    except Exception:
+        earth_engine_status = "unhealthy"
+
+    return {
+        "status": "healthy",
+        "earth_engine": earth_engine_status,
+        "mcp_server": "running",
+        "project_id": config.earth_engine_project_id or "not_set",
+    }
+
+
 def _initialize_earth_engine() -> bool:
     """Initialize Earth Engine with proper authentication."""
     logger.info("Initializing Google Earth Engine...")

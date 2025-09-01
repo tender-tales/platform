@@ -9,8 +9,8 @@ from pydantic_settings import BaseSettings
 class MCPConfig(BaseSettings):
     """Configuration settings for the MCP server."""
 
-    # Server configuration
-    mcp_port: int = int(os.getenv("MCP_PORT", "8001"))
+    # Server configuration - Cloud Run uses PORT env var
+    mcp_port: int = int(os.getenv("PORT", os.getenv("MCP_PORT", "8001")))
 
     # Earth Engine configuration
     earth_engine_project_id: Optional[str] = os.getenv("EARTH_ENGINE_PROJECT_ID")
