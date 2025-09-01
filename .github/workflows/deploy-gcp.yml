@@ -94,7 +94,7 @@ jobs:
 
           # Run the test client inside the container to test MCP functionality
           echo "=== Running MCP Client Tests ==="
-          docker exec mcp-server-test-${{ env.BUILD_ID }} python test_mcp_client.py
+          docker exec mcp-server-test-${{ env.BUILD_ID }} uv run python test_mcp_client.py
 
           # Check server health by testing HTTP endpoint if available
           echo "=== Testing Server Health ==="
