@@ -72,14 +72,14 @@ export default function Home() {
               className="text-2xl md:text-3xl text-gray-200 mb-6 font-light"
               variants={fadeInUp}
             >
-              Documenting the stories of a changing planet
+              Safeguarding the stories of a changing planet
             </motion.p>
 
             <motion.p
               className="text-lg md:text-xl text-gray-300 mb-12 max-w-3xl mx-auto leading-relaxed"
               variants={fadeInUp}
             >
-              Our planet is transforming before our eyes, and human activity is the leading force behind this change. Our mission is to document how these vulnerable ecosystems are changing and impacting the rich fabric of biodiversity on which all life depends.
+              Our planet is transforming before our eyes, and human activity is the leading force behind this change. Our mission is to protect vulnerable ecosystems and preserve the rich fabric of biodiversity on which all life depends.
             </motion.p>
 
           </motion.div>

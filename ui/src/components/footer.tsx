@@ -16,7 +16,7 @@ export default function Footer() {
       viewport={{ once: true }}
     >
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-8 mb-12">
           {/* Logo */}
           <div className="md:col-span-2">
             <div className="flex items-center space-x-4">
@@ -57,6 +57,21 @@ export default function Footer() {
             </ul>
           </div>
 
+          {/* Research Links */}
+          <div>
+            <h3 className="text-white font-semibold text-lg mb-4">Research</h3>
+            <ul className="space-y-3">
+              <li>
+                <Link
+                  href="/blog"
+                  className="text-gray-400 hover:text-white transition-colors duration-200"
+                >
+                  Blog
+                </Link>
+              </li>
+            </ul>
+          </div>
+
           {/* Product Links */}
           <div>
             <h3 className="text-white font-semibold text-lg mb-4">Product</h3>
@@ -78,6 +93,21 @@ export default function Footer() {
                 >
                   Documentation
                 </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* Services Links */}
+          <div>
+            <h3 className="text-white font-semibold text-lg mb-4">Services</h3>
+            <ul className="space-y-3">
+              <li>
+                <Link
+                  href="/services/conservation-partnership"
+                  className="text-gray-400 hover:text-white transition-colors duration-200"
+                >
+                  Conservation Partnership
+                </Link>
               </li>
             </ul>
           </div>
