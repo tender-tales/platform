@@ -100,7 +100,7 @@ export default function MapPage() {
 
       if (response.data && response.data.length > 0) {
         // Look for geocoding result in all results (not just first)
-        const geocodeResult = response.data.find(result => result.tool === 'geocode_location')
+        const geocodeResult = response.data.find((result: any) => result.tool === 'geocode_location')
         if (geocodeResult && geocodeResult.result?.found) {
           const coords = geocodeResult.result.coordinates
           console.log('Navigation coords found:', coords) // Debug log
@@ -122,7 +122,7 @@ export default function MapPage() {
         }
 
         // Check for satellite imagery data in all results
-        const sentinelResult = response.data.find(result => result.tool === 'get_sentinel_image')
+        const sentinelResult = response.data.find((result: any) => result.tool === 'get_sentinel_image')
         if (sentinelResult && sentinelResult.result) {
           // Only set visualization data if we have a valid thumbnail URL
           if (sentinelResult.result.thumbnail_url && !sentinelResult.result.status?.includes('simulated')) {

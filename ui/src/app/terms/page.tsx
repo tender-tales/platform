@@ -127,7 +127,7 @@ export default function TermsPage() {
             <section>
               <h2 className="text-2xl font-bold mb-4 text-blue-400">Disclaimer of Warranties</h2>
               <p className="text-gray-300 text-lg leading-relaxed">
-                The service is provided on an "AS IS" and "AS AVAILABLE" basis. We make no warranties, expressed or implied,
+                The service is provided on an &quot;AS IS&quot; and &quot;AS AVAILABLE&quot; basis. We make no warranties, expressed or implied,
                 and hereby disclaim all other warranties including implied warranties of merchantability, fitness for a
                 particular purpose, or non-infringement.
               </p>

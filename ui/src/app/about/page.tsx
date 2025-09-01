@@ -67,7 +67,7 @@ export default function AboutPage() {
               About <span className="text-blue-400">Us</span>
             </h1>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
-              Coming soon. We're working on sharing our story and mission with you.
+              Coming soon. We&apos;re working on sharing our story and mission with you.
             </p>
           </div>
 
@@ -75,7 +75,7 @@ export default function AboutPage() {
             <div>
               <h2 className="text-2xl font-bold mb-6 text-blue-400">Our Mission</h2>
               <p className="text-gray-300 text-lg leading-relaxed mb-6">
-                We're dedicated to documenting the stories of our changing planet through
+                We&apos;re dedicated to documenting the stories of our changing planet through
                 advanced satellite imagery and environmental data analysis.
               </p>
               <p className="text-gray-300 text-lg leading-relaxed">
