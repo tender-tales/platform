@@ -234,13 +234,10 @@ jobs:
           service: ${{ env.SERVICE_MCP }}
           region: ${{ env.REGION }}
           image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_MCP }}:${{ github.sha }}
-          flags: '--allow-unauthenticated --memory=1Gi --cpu=1 --timeout=300 --max-instances=10 --cpu-boost --cpu-throttling'
+          flags: '--allow-unauthenticated --memory=1Gi --cpu=1 --timeout=300 --max-instances=10 --cpu-boost --cpu-throttling --port=8000'
           env_vars: |
             EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
             GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
-            MCP_PORT=${{ env.MCP_PORT }}
-            FASTMCP_HOST=0.0.0.0
-            FASTMCP_PORT=8000
 
       - name: Build and push frontend image with backend URL
         run: |
