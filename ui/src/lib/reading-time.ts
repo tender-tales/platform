@@ -10,10 +10,14 @@ export function calculateReadingTime(text: string, wordsPerMinute: number = 200)
   }
 
   // Remove HTML tags and extra whitespace
-  const cleanText = text
-    .replace(/<[^>]*>/g, '') // Remove HTML tags
-    .replace(/\s+/g, ' ') // Replace multiple spaces with single space
-    .trim()
+  let cleanText = text;
+  let prevText;
+  // Remove HTML tags recursively to prevent incomplete sanitization
+  do {
+    prevText = cleanText;
+    cleanText = cleanText.replace(/<[^>]*>/g, '');
+  } while (cleanText !== prevText);
+  cleanText = cleanText.replace(/\s+/g, ' ').trim();
 
   // Count words (split by spaces and filter out empty strings)
   const wordCount = cleanText.split(' ').filter(word => word.length > 0).length
