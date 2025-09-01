@@ -87,6 +87,7 @@ jobs:
             -e EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }} \
             -e MCP_PORT=${{ env.MCP_PORT }} \
             -e DEBUG=${{ env.DEBUG }} \
+            -v $PWD/tender_tales/credentials.json:/app/credentials.json:ro \
             tender-tales/platform:mcp-server-${{ env.BUILD_ID }} \
             uv run python test_mcp_client.py
 
@@ -97,6 +98,7 @@ jobs:
             -e EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }} \
             -e MCP_PORT=${{ env.MCP_PORT }} \
             -e DEBUG=${{ env.DEBUG }} \
+            -v $PWD/tender_tales/credentials.json:/app/credentials.json:ro \
             tender-tales/platform:mcp-server-${{ env.BUILD_ID }}
 
           # Wait for server to initialize
