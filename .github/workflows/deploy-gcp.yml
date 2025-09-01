@@ -18,7 +18,7 @@ env:
   # Common environment variables for builds
   BACKEND_PORT: 8000
   FRONTEND_PORT: 3000
-  MCP_PORT: 8001
+  MCP_PORT: 8080
   BACKEND_HOST: localhost
   DEBUG: false
 
@@ -226,11 +226,10 @@ jobs:
           service: ${{ env.SERVICE_MCP }}
           region: ${{ env.REGION }}
           image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_MCP }}:${{ github.sha }}
-          flags: '--allow-unauthenticated --memory=1Gi --cpu=1 --timeout=300 --max-instances=10 --cpu-boost --port=${{ env.MCP_PORT }}'
+          flags: '--allow-unauthenticated --memory=1Gi --cpu=1 --timeout=300 --max-instances=10 --cpu-boost'
           env_vars: |
             EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
             GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
-            PORT=${{ env.MCP_PORT }}
             MCP_PORT=${{ env.MCP_PORT }}
 
       - name: Build and push frontend image with backend URL
