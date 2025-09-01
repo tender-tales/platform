@@ -10,10 +10,12 @@ import os
 from typing import Any, Optional, cast
 
 import ee
-from google.auth.transport.requests import Request
+from google.auth.transport.requests import Request as GoogleRequest
 from google.oauth2.credentials import Credentials
 from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 from config import MCPConfig
 from logging_config import setup_logging, silence_noisy_loggers
@@ -30,7 +32,11 @@ config = MCPConfig()
 earth_tools = EarthEngineTools()
 
 # Create MCP server
-mcp = FastMCP("Kadal Earth Engine")
+mcp = FastMCP(
+    "Kadal Earth Engine",
+    host="0.0.0.0",
+    port=config.mcp_port,
+)
 
 
 class Region(BaseModel):
@@ -203,7 +209,7 @@ async def geocode_location(location_name: str) -> dict[str, Any]:
 
 
 @mcp.custom_route("/health", methods=["GET"])  # type: ignore[misc]
-async def health_check() -> dict[str, str]:
+async def health_check(request: Request) -> JSONResponse:
     """Health check endpoint for Docker and Cloud Run."""
     try:
         # Test Earth Engine connection if available
@@ -216,12 +222,14 @@ async def health_check() -> dict[str, str]:
     except Exception:
         earth_engine_status = "unhealthy"
 
-    return {
-        "status": "healthy",
-        "earth_engine": earth_engine_status,
-        "mcp_server": "running",
-        "project_id": config.earth_engine_project_id or "not_set",
-    }
+    return JSONResponse(
+        {
+            "status": "healthy",
+            "earth_engine": earth_engine_status,
+            "mcp_server": "running",
+            "project_id": config.earth_engine_project_id or "not_set",
+        }
+    )
 
 
 def _initialize_earth_engine() -> bool:
@@ -246,11 +254,17 @@ def _initialize_earth_engine() -> bool:
 
         credentials_path = None
         for path in credentials_paths:
-            logger.debug(f"Checking credentials path: {path}")
-            if os.path.exists(path) and os.path.getsize(path) > 0:
-                credentials_path = path
-                logger.info(f"Found credentials file: {path}")
-                break
+            logger.info(f"Checking credentials path: {path}")
+            if os.path.exists(path):
+                file_size = os.path.getsize(path)
+                logger.info(f"File exists, size: {file_size} bytes")
+                if file_size > 0:
+                    credentials_path = path
+                    logger.info(f"Found valid credentials file: {path}")
+                    break
+                logger.warning(f"Credentials file is empty: {path}")
+            else:
+                logger.info(f"File does not exist: {path}")
 
         if credentials_path:
             try:
@@ -310,7 +324,7 @@ def _initialize_with_oauth(creds: dict[str, Any]) -> bool:
     )
 
     logger.debug("Refreshing OAuth access token...")
-    oauth_creds.refresh(Request())  # type: ignore[no-untyped-call]
+    oauth_creds.refresh(GoogleRequest())  # type: ignore[no-untyped-call]
     logger.debug("OAuth token refreshed successfully")
 
     logger.debug("Initializing Earth Engine with OAuth credentials...")
@@ -417,7 +431,10 @@ def main() -> None:
 
         # Run the MCP server
         logger.info("Starting Kadal Earth Engine MCP Server")
-        logger.info(f"Starting MCP server on port {config.mcp_port}")
+        logger.info(f"PORT environment variable: {os.getenv('PORT')}")
+        logger.info(f"MCP_PORT environment variable: {os.getenv('MCP_PORT')}")
+        logger.info(f"Configured server port: {config.mcp_port}")
+        logger.info(f"Server will listen on 0.0.0.0:{config.mcp_port}")
 
         # For Docker containers, we need to use SSE transport for persistent HTTP server
         mcp.run(transport="sse")

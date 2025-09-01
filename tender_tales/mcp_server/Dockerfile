@@ -8,6 +8,14 @@ RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/* && 
 
 COPY . .
 
+# Debug: Check if credentials file exists after copy
+RUN ls -la /app/ && \
+    if [ -f /app/credentials.json ]; then \
+        echo "✓ credentials.json found, size: $(stat -f%z /app/credentials.json 2>/dev/null || stat -c%s /app/credentials.json) bytes"; \
+    else \
+        echo "✗ credentials.json not found"; \
+    fi
+
 RUN uv sync --dev
 
 ARG MCP_PORT
