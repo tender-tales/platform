@@ -5,10 +5,8 @@ A Model Context Protocol server that provides Google Earth Engine capabilities
 for geospatial analysis and environmental monitoring.
 """
 
-import asyncio
 import json
 import os
-import signal
 from typing import Any, Optional, cast
 
 import ee
@@ -395,32 +393,11 @@ def main() -> None:
                 "Earth Engine not available - MCP server will have limited functionality"
             )
 
-        # Run the MCP server
+        # Run the MCP server with HTTP transport for Cloud Run
         logger.info("Starting Kadal Earth Engine MCP Server")
-        logger.info("MCP server ready for connections")
+        logger.info(f"Starting HTTP server on port {config.mcp_port}")
 
-        # Keep the server running
-        async def keep_alive() -> None:
-            logger.info("MCP server running, waiting for connections...")
-            try:
-                while True:
-                    await asyncio.sleep(60)
-                    logger.debug("MCP server heartbeat")
-            except asyncio.CancelledError:
-                logger.info("MCP server shutdown requested")
-
-        # Set up signal handlers for graceful shutdown
-        def signal_handler(signum: int, frame: Any) -> None:
-            logger.info(f"Received signal {signum}, shutting down gracefully")
-            raise KeyboardInterrupt
-
-        signal.signal(signal.SIGTERM, signal_handler)
-        signal.signal(signal.SIGINT, signal_handler)
-
-        try:
-            asyncio.run(keep_alive())
-        except KeyboardInterrupt:
-            logger.info("MCP server stopped")
+        mcp.run(transport="http", host="0.0.0.0", port=config.mcp_port)
 
     except Exception as e:
         logger.error(f"Failed to start MCP server: {e}")
