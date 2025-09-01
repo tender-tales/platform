@@ -19,7 +19,7 @@ load_dotenv()
 
 # Set up logging before anything else
 setup_logging()
-logger = logging.getLogger("api.main")
+logger = logging.getLogger("kadal.api.main")
 
 
 @asynccontextmanager
@@ -27,36 +27,36 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan events."""
     # Startup
     logger.info("=" * 60)
-    logger.info("🚀 TENDER TALES API STARTING UP")
+    logger.info("KADAL API STARTING UP")
     logger.info("=" * 60)
-    logger.info(f"📦 Application: {app.title} v{app.version}")
-    logger.info(f"🌐 Backend Port: {settings.backend_port}")
-    logger.info(f"🖥️  Frontend Port: {settings.frontend_port}")
-    logger.info(f"🔧 Debug Mode: {'ENABLED' if settings.debug else 'DISABLED'}")
+    logger.info(f"Application: {app.title} v{app.version}")
+    logger.info(f"Backend Port: {settings.backend_port}")
+    logger.info(f"Frontend Port: {settings.frontend_port}")
+    logger.info(f"Debug Mode: {'ENABLED' if settings.debug else 'DISABLED'}")
     logger.info(
-        f"🌍 Earth Engine Project: {settings.earth_engine_project_id or 'NOT SET'}"
+        f"Earth Engine Project: {settings.earth_engine_project_id or 'NOT SET'}"
     )
 
     # Check Earth Engine initialization
     if earth_engine_service.is_initialized():
-        logger.info("✅ Earth Engine service is ready!")
+        logger.info("Earth Engine service is ready")
     else:
-        logger.warning("⚠️  Earth Engine service failed to initialize")
+        logger.warning("Earth Engine service failed to initialize")
 
     logger.info("-" * 60)
-    logger.info("🎯 API READY - All systems operational!")
+    logger.info("API READY - All systems operational")
     logger.info("-" * 60)
 
     yield
 
     # Shutdown
-    logger.info("🛑 Shutting down Tender Tales API...")
-    logger.info("👋 Goodbye!")
+    logger.info("Shutting down Kadal API...")
+    logger.info("Shutdown complete")
 
 
 app = FastAPI(
     title="Tender Tales API",
-    description="Backend API for satellite data analysis and similarity mapping",
+    description="Backend API",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -83,7 +83,7 @@ async def root() -> Dict[str, str]:
 @app.get("/health")
 async def health_check() -> Dict[str, Any]:
     """Health check endpoint."""
-    logger.debug("🏥 Health check requested")
+    logger.debug("Health check requested")
 
     ee_configured = bool(settings.earth_engine_project_id)
     ee_initialized = earth_engine_service.is_initialized()
@@ -112,8 +112,8 @@ async def health_check() -> Dict[str, Any]:
     }
 
     if ee_initialized:
-        logger.debug("✅ Health check passed - all services operational")
+        logger.debug("Health check passed - all services operational")
     else:
-        logger.warning("⚠️  Health check degraded - Earth Engine not initialized")
+        logger.warning("Health check degraded - Earth Engine not initialized")
 
     return health_status

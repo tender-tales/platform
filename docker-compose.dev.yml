@@ -57,6 +57,32 @@ services:
       retries: 3
       start_period: 40s
 
+  mcp-server-dev:
+    build:
+      context: ./tender_tales/mcp_server
+      dockerfile: Dockerfile
+    image: tender-tales/platform:mcp-server-dev-${BUILD_ID:-latest}
+    env_file: .env.development
+    ports:
+      - "8001:8001"
+    environment:
+      - MCP_PORT=8001
+      - EARTH_ENGINE_PROJECT_ID=${EARTH_ENGINE_PROJECT_ID}
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
+      - DEBUG=${DEBUG}
+    volumes:
+      - ./tender_tales/mcp_server:/app
+      - ${HOME}/.config/earthengine/credentials:/app/credentials.json:ro
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
 networks:
   app-network:
     driver: bridge

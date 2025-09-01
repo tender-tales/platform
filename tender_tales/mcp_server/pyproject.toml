@@ -1,30 +1,25 @@
 [project]
-name = "tender-tales"
-version = "0.1.0"
-description = "API for Tender Tales platform"
-readme = "README.md"
-authors = [{name = "Amrit Krishnan", email = "amrit110@gmail.com"}]
+name = "kadal-earth-engine-mcp"
+version = "1.0.0"
+description = "MCP Server for Google Earth Engine - Kadal Platform"
+authors = [{name = "Kadal Team", email = "team@kadal.platform"}]
 license = "Apache-2.0"
-repository = "https://github.com/amrit110/tender-tales"
+repository = "https://github.com/tender-tales/platform"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.104.0",
     "uvicorn[standard]>=0.24.0",
-    "pydantic>=2.4.0",
-    "pydantic-settings>=2.0.0",
+    "mcp>=1.0.0",
     "earthengine-api>=0.1.384",
     "google-auth>=2.17.0",
-    "numpy>=1.24.0",
+    "google-cloud-storage>=2.10.0",
+    "pydantic>=2.4.0",
+    "pydantic-settings>=2.0.0",
     "python-multipart>=0.0.6",
-    "python-jose[cryptography]>=3.3.0",
-    "passlib[bcrypt]>=1.7.4",
-    "httpx>=0.25.0",
     "python-dotenv>=1.0.0",
+    "aiohttp>=3.8.0",
     "colorlog>=6.8.0",
     "rich>=13.7.0",
-    "langchain>=0.1.0",
-    "langchain-anthropic>=0.1.0",
-    "langchain-core>=0.1.0"
 ]
 
 [build-system]
@@ -32,26 +27,15 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["api/", "services"]
+packages = ["."]
 
 [dependency-groups]
 dev = [
     "pytest>=7.1.1",
     "pre-commit>=4.0.0",
     "pytest-cov>=3.0.0",
-    "codecov>=2.1.13",
     "mypy>=1.7.0",
     "ruff>=0.6.0",
-    "pip-audit>=2.7.1",
-]
-
-docs = [
-    "mkdocs>=1.5.0",
-    "mkdocs-material>=9.5.0",
-    "mkdocstrings>=0.24.0",
-    "mkdocstrings-python>=1.8.0",
-    "pymdown-extensions>=10.7.0",
-    "mkdocs-include-markdown-plugin>=4.0.0",
 ]
 
 [tool.mypy]
@@ -77,23 +61,8 @@ implicit_reexport = false
 strict_equality = true
 extra_checks = true
 
-# Per-module override for files using Google Earth Engine library
-# The ee module uses dynamic imports and re-exports that mypy cannot detect
-[[tool.mypy.overrides]]
-module = "tender_tales.services.earth_engine"
-disable_error_code = ["attr-defined"]
-
-[[tool.mypy.overrides]]
-module = "tender_tales.mcp_server.*"
-disable_error_code = ["attr-defined"]
-
-# Disable strict type checking for Google Auth and other untyped libraries
-[[tool.mypy.overrides]]
-module = ["google.auth.*", "google.oauth2.*", "langchain.*"]
-ignore_missing_imports = true
-
 [tool.ruff]
-include = ["*.py", "pyproject.toml", "*.ipynb"]
+include = ["*.py", "pyproject.toml"]
 line-length = 88
 
 [tool.ruff.format]
@@ -120,18 +89,6 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["E402", "F401", "F403", "F811"]
 
-[tool.ruff.lint.pep8-naming]
-ignore-names = ["X*", "setUp"]
-
-[tool.ruff.lint.isort]
-lines-after-imports = 2
-
-[tool.ruff.lint.pydocstyle]
-convention = "numpy"
-
-[tool.ruff.lint.pycodestyle]
-max-doc-length = 88
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
@@ -142,14 +99,4 @@ addopts = [
     "--tb=short",
     "--strict-markers",
     "--disable-warnings",
-    "--cov=tender_tales",
-    "--cov-report=term-missing",
 ]
-filterwarnings = [
-    "ignore::DeprecationWarning",
-    "ignore::UserWarning",
-]
-
-[tool.coverage.run]
-source = ["api"]
-omit = ["tests/*", "*__init__.py"]
