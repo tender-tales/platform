@@ -5,6 +5,7 @@ A Model Context Protocol server that provides Google Earth Engine capabilities
 for geospatial analysis and environmental monitoring.
 """
 
+import asyncio
 import json
 import os
 from typing import Any, Optional, cast
@@ -13,6 +14,7 @@ import ee
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from mcp.server.fastmcp import FastMCP
+from mcp.server.stdio import stdio_server
 from pydantic import BaseModel
 
 from config import MCPConfig
@@ -415,11 +417,19 @@ def main() -> None:
                 "Earth Engine not available - MCP server will have limited functionality"
             )
 
-        # Run the MCP server with HTTP transport for Cloud Run
+        # Run the MCP server
         logger.info("Starting Kadal Earth Engine MCP Server")
-        logger.info(f"Starting HTTP server on port {config.mcp_port}")
+        logger.info(f"Starting MCP server on port {config.mcp_port}")
 
-        mcp.run(transport="http", host="0.0.0.0", port=config.mcp_port)
+        # For Docker containers, we need to use stdio transport properly
+
+        async def run_server() -> None:
+            async with stdio_server() as (read_stream, write_stream):
+                await mcp.run(
+                    read_stream, write_stream, mcp.create_initialization_options()
+                )
+
+        asyncio.run(run_server())
 
     except Exception as e:
         logger.error(f"Failed to start MCP server: {e}")
