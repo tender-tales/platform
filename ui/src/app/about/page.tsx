@@ -68,6 +68,22 @@ export default function AboutPage() {
             </h1>
           </div>
 
+          {/* Mission Statement */}
+          <motion.div
+            className="max-w-4xl mx-auto mb-16"
+            variants={fadeInUp}
+            initial="initial"
+            animate="animate"
+            transition={{ delay: 0.2 }}
+          >
+            <div className="text-center">
+              <p className="text-xl text-gray-300 leading-relaxed font-light">
+                We advance conservation efforts through cutting-edge technology and implementation-based problem solving.
+                Combining deep technical expertise with environmental science to create measurable impact.
+              </p>
+            </div>
+          </motion.div>
+
           <div className="max-w-4xl mx-auto">
             <h2 className="text-3xl font-bold mb-12 text-center text-ocean-400">Our Team</h2>
 
