@@ -64,7 +64,9 @@ jobs:
           export EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
           export DEBUG=${{ env.DEBUG }}
           export BUILD_ID=${{ env.BUILD_ID }}
-          docker build -t tender-tales/platform:mcp-server-${{ env.BUILD_ID }} ./tender_tales/mcp_server
+          docker build -t tender-tales/platform:mcp-server-${{ env.BUILD_ID }} \
+            --build-arg MCP_PORT=${{ env.MCP_PORT }} \
+            ./tender_tales/mcp_server
 
       - name: Google Auth for Testing
         if: github.actor != 'dependabot[bot]'
@@ -87,6 +89,7 @@ jobs:
             -e EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }} \
             -e MCP_PORT=${{ env.MCP_PORT }} \
             -e DEBUG=${{ env.DEBUG }} \
+            -e GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json \
             -v $PWD/tender_tales/credentials.json:/app/credentials.json:ro \
             tender-tales/platform:mcp-server-${{ env.BUILD_ID }} \
             uv run python test_mcp_client.py
@@ -98,6 +101,7 @@ jobs:
             -e EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }} \
             -e MCP_PORT=${{ env.MCP_PORT }} \
             -e DEBUG=${{ env.DEBUG }} \
+            -e GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json \
             -v $PWD/tender_tales/credentials.json:/app/credentials.json:ro \
             tender-tales/platform:mcp-server-${{ env.BUILD_ID }}
 
@@ -194,7 +198,9 @@ jobs:
         run: |
           export BUILD_ID=${{ env.BUILD_ID }}
           export EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
-          docker build -t tender-tales/platform:mcp-server-${{ env.BUILD_ID }} ./tender_tales/mcp_server
+          docker build -t tender-tales/platform:mcp-server-${{ env.BUILD_ID }} \
+            --build-arg MCP_PORT=${{ env.MCP_PORT }} \
+            ./tender_tales/mcp_server
 
           # Tag and push MCP server
           docker tag tender-tales/platform:mcp-server-${{ env.BUILD_ID }} \
@@ -220,10 +226,11 @@ jobs:
           service: ${{ env.SERVICE_MCP }}
           region: ${{ env.REGION }}
           image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_MCP }}:${{ github.sha }}
-          flags: '--allow-unauthenticated --memory=1Gi --cpu=1 --timeout=300 --max-instances=10 --cpu-boost'
+          flags: '--allow-unauthenticated --memory=1Gi --cpu=1 --timeout=300 --max-instances=10 --cpu-boost --port=${{ env.MCP_PORT }}'
           env_vars: |
             EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
             GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
+            PORT=${{ env.MCP_PORT }}
             MCP_PORT=${{ env.MCP_PORT }}
 
       - name: Build and push frontend image with backend URL
