@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Satellite, MapPin, TrendingUp, Layers, Eye, ArrowRight, Play, BarChart3, Globe2, TreePine, Building, Mountain } from 'lucide-react'
+import { Waves, MapPin, TrendingUp, Layers, Eye, ArrowRight, Play, BarChart3, Globe2, TreePine, Building, Mountain } from 'lucide-react'
 import Image from 'next/image'
 import Footer from '@/components/footer'
 
@@ -26,17 +26,21 @@ export default function Home() {
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         {/* NASA Earth Satellite Timelapse Background */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-green-800 to-blue-900">
-          <Image
-            src="https://miro.medium.com/v2/resize:fit:640/format:webp/1*UBUrmlBRYwSmx5hIzXhcdQ.gif"
-            alt="NASA EPIC Earth satellite timelapse showing full Earth from space"
+          <video
             className="w-full h-full object-cover opacity-90"
-            fill
-            priority
-            unoptimized
+            autoPlay
+            loop
+            muted
+            playsInline
+            poster=""
+            preload="metadata"
             onError={(e) => {
               e.currentTarget.style.display = 'none';
             }}
-          />
+          >
+            <source src="/tender-tales-hero.mp4" type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
           <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-black/60"></div>
         </div>
 
@@ -51,7 +55,13 @@ export default function Home() {
               className="flex items-center justify-center mb-6"
               variants={fadeInUp}
             >
-              <Satellite className="w-12 h-12 text-blue-400 mr-4" />
+              <Image
+                src="/tender-tales-logo.png"
+                alt="Tender Tales Logo"
+                width={48}
+                height={48}
+                className="mr-4"
+              />
               <h1 className="text-6xl md:text-8xl font-bold">
                 <span className="text-white">Tender</span>
                 <span className="text-blue-400">Tales</span>
@@ -72,22 +82,6 @@ export default function Home() {
               Our planet is transforming before our eyes, and human activity is the leading force behind this change. Our mission is to document how these vulnerable ecosystems are changing and impacting the rich fabric of biodiversity on which all life depends.
             </motion.p>
 
-            <motion.div
-              className="flex flex-col sm:flex-row gap-4 justify-center"
-              variants={fadeInUp}
-            >
-              <button
-                onClick={() => window.location.href = '/map'}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-8 rounded-lg transition duration-300 shadow-lg flex items-center justify-center gap-2 text-lg"
-              >
-                <Play className="w-5 h-5" />
-                Explore the Map
-              </button>
-              <button className="bg-transparent hover:bg-white/10 text-white font-semibold py-4 px-8 rounded-lg border-2 border-white/30 hover:border-white/50 transition duration-300 flex items-center justify-center gap-2 text-lg">
-                <BarChart3 className="w-5 h-5" />
-                View Examples
-              </button>
-            </motion.div>
           </motion.div>
         </div>
 

@@ -1,4 +1,4 @@
-"""Configuration settings for the API."""
+"""Configuration for the MCP server."""
 
 import os
 from typing import Optional
@@ -6,12 +6,11 @@ from typing import Optional
 from pydantic_settings import BaseSettings
 
 
-class Settings(BaseSettings):
-    """Application settings."""
+class MCPConfig(BaseSettings):
+    """Configuration settings for the MCP server."""
 
     # Server configuration
-    backend_port: int = int(os.getenv("BACKEND_PORT", "8000"))
-    frontend_port: int = int(os.getenv("FRONTEND_PORT", "3000"))
+    mcp_port: int = int(os.getenv("MCP_PORT", "8001"))
 
     # Earth Engine configuration
     earth_engine_project_id: Optional[str] = os.getenv("EARTH_ENGINE_PROJECT_ID")
@@ -19,11 +18,7 @@ class Settings(BaseSettings):
         "GOOGLE_APPLICATION_CREDENTIALS"
     )
 
-    # LLM configuration
-    anthropic_api_key: Optional[str] = os.getenv("ANTHROPIC_API_KEY")
-
     # API configuration
-    cors_origins: list[str] = ["http://localhost:3000", "http://localhost:3001"]
     debug: bool = os.getenv("DEBUG", "false").lower() == "true"
 
     class Config:
@@ -32,4 +27,5 @@ class Settings(BaseSettings):
         env_file = ".env"
 
 
-settings = Settings()
+# Global configuration instance
+config = MCPConfig()

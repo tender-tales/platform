@@ -1,364 +1,434 @@
-"""API routes for satellite data analysis."""
+"""API routes."""
 
-import logging
-from typing import Any, Dict, Optional
+import os
+from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
+import httpx
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from services.earth_engine import (
-    BoundingBox,
-    earth_engine_service,
-)
+from services.llm_service import LLMQueryProcessor
+from services.logging_config import setup_module_logger
 
 
-logger = logging.getLogger("api.routes")
+logger = setup_module_logger("kadal.api.routes")
+llm_processor = LLMQueryProcessor()
 
 router = APIRouter()
 
 
-class SimilarityHeatmapRequest(BaseModel):
-    """Request model for similarity heatmap generation."""
+class MCPElevationRequest(BaseModel):
+    """Request model for MCP elevation queries."""
 
-    bounds: BoundingBox
-    reference_year: int
-    target_year: int
-
-
-class EmbeddingsRequest(BaseModel):
-    """Request model for satellite embeddings."""
-
-    bounds: BoundingBox
-    year: int
-    num_points: Optional[int] = 50
+    region: dict[str, Any]
+    scale: int = 1000
 
 
-class ErrorResponse(BaseModel):
-    """Error response model."""
+class MCPQueryRequest(BaseModel):
+    """Request model for general MCP queries."""
 
-    success: bool = False
-    error: str
-    message: str
-    error_type: str
+    query: str
+    region: dict[str, Any]
 
 
-@router.get("/similarity-heatmap")
-async def get_similarity_heatmap(
-    north: float = Query(..., description="Northern boundary"),
-    south: float = Query(..., description="Southern boundary"),
-    east: float = Query(..., description="Eastern boundary"),
-    west: float = Query(..., description="Western boundary"),
-    reference_year: int = Query(2022, description="Reference year"),
-    target_year: int = Query(2023, description="Target year for comparison"),
-) -> Dict[str, Any]:
-    """
-    Get similarity heatmap between two years for a given geographic area.
-
-    This endpoint computes cosine similarity between satellite embeddings
-    from two different years and returns a grid of similarity values.
-    """
-    logger.info(f"🗺️  Similarity heatmap requested: {reference_year} vs {target_year}")
-    logger.debug(f"📍 Bounds: N{north}, S{south}, E{east}, W{west}")
+@router.post("/mcp/elevation")
+async def get_elevation_data(request: MCPElevationRequest) -> dict[str, Any]:
+    """Get elevation data for a region using the MCP server."""
+    logger.info(f"Processing elevation request for region: {request.region}")
 
     try:
-        if not earth_engine_service.is_initialized():
-            raise HTTPException(
-                status_code=503,
-                detail={
-                    "success": False,
-                    "error": "Earth Engine not configured",
-                    "message": "Earth Engine authentication credentials are not set up",
-                    "error_type": "AUTHENTICATION_ERROR",
-                },
-            )
-
-        bounds = BoundingBox(north=north, south=south, east=east, west=west)
-
-        # Validate bounds
-        if north <= south or east <= west:
-            raise HTTPException(
-                status_code=400,
-                detail={
-                    "success": False,
-                    "error": "Invalid bounds",
-                    "message": "North must be greater than south, east must be greater than west",
-                    "error_type": "VALIDATION_ERROR",
-                },
-            )
-
-        heatmap_data = await earth_engine_service.fetch_similarity_heatmap(
-            bounds=bounds, reference_year=reference_year, target_year=target_year
+        # Call the MCP server to get elevation statistics
+        result = await call_mcp_server(
+            "get_image_statistics",
+            {
+                "dataset_id": "USGS/SRTMGL1_003",
+                "region": request.region,
+                "scale": request.scale,
+            },
         )
 
+        logger.info("Elevation data retrieved successfully")
         return {
-            "success": True,
-            "mode": "similarity_heatmap",
-            "data": heatmap_data,
-            "reference_year": reference_year,
-            "target_year": target_year,
-            "message": f"Similarity heatmap computed between {reference_year} and {target_year}",
+            "status": "success",
+            "statistics": result.get("statistics", {}),
+            "region": request.region,
+            "scale": request.scale,
+            "dataset": "USGS/SRTMGL1_003",
         }
 
-    except HTTPException:
-        raise
     except Exception as e:
-        logger.error(f"Error generating similarity heatmap: {e}")
+        logger.error(f"Failed to get elevation data: {e}")
         raise HTTPException(
-            status_code=500,
-            detail={
-                "success": False,
-                "error": "Internal server error",
-                "message": str(e),
-                "error_type": "SERVER_ERROR",
-            },
+            status_code=500, detail=f"Failed to process elevation request: {str(e)}"
         ) from e
 
 
-@router.post("/similarity-heatmap")
-async def post_similarity_heatmap(request: SimilarityHeatmapRequest) -> Dict[str, Any]:
-    """POST version of similarity heatmap endpoint for complex requests."""
-    try:
-        if not earth_engine_service.is_initialized():
-            raise HTTPException(
-                status_code=503,
-                detail={
-                    "success": False,
-                    "error": "Earth Engine not configured",
-                    "message": "Earth Engine authentication credentials are not set up",
-                    "error_type": "AUTHENTICATION_ERROR",
-                },
-            )
+@router.post("/mcp/query")
+async def process_mcp_query(request: MCPQueryRequest) -> dict[str, Any]:
+    """Process any Earth Engine query using LLM-powered analysis."""
+    logger.info(f"Processing query with LLM: {request.query}")
 
-        heatmap_data = await earth_engine_service.fetch_similarity_heatmap(
-            bounds=request.bounds,
-            reference_year=request.reference_year,
-            target_year=request.target_year,
+    try:
+        # Use LLM to analyze the query and determine appropriate actions
+        analysis = await llm_processor.analyze_query(request.query, request.region)
+
+        if not analysis.in_scope:
+            logger.info(f"Query out of scope: {analysis.reasoning}")
+            return {
+                "status": "out_of_scope",
+                "response": analysis.response_template,
+                "reasoning": analysis.reasoning,
+                "data": None,
+            }
+
+        # Execute the tool calls determined by the LLM
+        results = []
+        for tool_call in analysis.tool_calls:
+            logger.info(f"Executing {tool_call.tool_name}: {tool_call.reasoning}")
+
+            try:
+                result = await call_mcp_server(
+                    tool_call.tool_name, tool_call.parameters
+                )
+                results.append(
+                    {
+                        "tool": tool_call.tool_name,
+                        "result": result,
+                        "reasoning": tool_call.reasoning,
+                    }
+                )
+                logger.info(f"Tool {tool_call.tool_name} result: {result}")  # Debug log
+            except Exception as e:
+                logger.error(f"Tool {tool_call.tool_name} failed: {e}")
+                results.append(
+                    {
+                        "tool": tool_call.tool_name,
+                        "error": str(e),
+                        "reasoning": tool_call.reasoning,
+                    }
+                )
+
+        # Format the response using the LLM's template and actual data
+        response_text = await _format_response(
+            analysis.response_template, results, request.query
         )
 
         return {
-            "success": True,
-            "mode": "similarity_heatmap",
-            "data": heatmap_data,
-            "reference_year": request.reference_year,
-            "target_year": request.target_year,
-            "message": f"Similarity heatmap computed between {request.reference_year} and {request.target_year}",
+            "status": "success",
+            "response": response_text,
+            "data": results,
+            "analysis": {
+                "reasoning": analysis.reasoning,
+                "tools_used": [tc.tool_name for tc in analysis.tool_calls],
+            },
+            "original_query": request.query,
         }
 
-    except HTTPException:
-        raise
     except Exception as e:
-        logger.error(f"Error generating similarity heatmap: {e}")
+        logger.error(f"Failed to process MCP query: {e}")
         raise HTTPException(
-            status_code=500,
-            detail={
-                "success": False,
-                "error": "Internal server error",
-                "message": str(e),
-                "error_type": "SERVER_ERROR",
-            },
+            status_code=500, detail=f"Failed to process query: {str(e)}"
         ) from e
 
 
-@router.get("/embeddings")
-async def get_embeddings(
-    north: float = Query(..., description="Northern boundary"),
-    south: float = Query(..., description="Southern boundary"),
-    east: float = Query(..., description="Eastern boundary"),
-    west: float = Query(..., description="Western boundary"),
-    year: int = Query(2023, description="Year for embeddings"),
-    num_points: int = Query(50, description="Number of sample points"),
-) -> Dict[str, Any]:
-    """
-    Get satellite embeddings for a given geographic area and year.
-
-    This endpoint samples satellite embedding vectors from the specified
-    area and returns them with computed similarity metrics and land use classifications.
-    """
-    logger.info(f"🛰️  Embeddings requested for year {year} with {num_points} points")
-    logger.debug(f"📍 Bounds: N{north}, S{south}, E{east}, W{west}")
-
+async def _format_response(
+    template: str, results: list[dict[str, Any]], query: str
+) -> str:
+    """Format the response using the results data."""
     try:
-        if not earth_engine_service.is_initialized():
-            raise HTTPException(
-                status_code=503,
-                detail={
-                    "success": False,
-                    "error": "Earth Engine not configured",
-                    "message": "Earth Engine authentication credentials are not set up",
-                    "error_type": "AUTHENTICATION_ERROR",
-                },
-            )
+        # Extract key data from results for template formatting
+        format_data = {}
 
-        bounds = BoundingBox(north=north, south=south, east=east, west=west)
+        for result_item in results:
+            if "result" in result_item:
+                result = result_item["result"]
 
-        # Validate bounds
-        if north <= south or east <= west:
-            raise HTTPException(
-                status_code=400,
-                detail={
-                    "success": False,
-                    "error": "Invalid bounds",
-                    "message": "North must be greater than south, east must be greater than west",
-                    "error_type": "VALIDATION_ERROR",
-                },
-            )
+                # Extract geocoding results
+                if "found" in result and result["found"]:
+                    coords = result.get("coordinates", {})
+                    format_data.update(
+                        {
+                            "location": result.get("location", "Unknown location"),
+                            "latitude": coords.get("latitude", 0),
+                            "longitude": coords.get("longitude", 0),
+                        }
+                    )
 
-        # Validate num_points
-        if num_points < 1 or num_points > 1000:
-            raise HTTPException(
-                status_code=400,
-                detail={
-                    "success": False,
-                    "error": "Invalid num_points",
-                    "message": "Number of points must be between 1 and 1000",
-                    "error_type": "VALIDATION_ERROR",
-                },
-            )
+                # Extract Sentinel imagery results
+                if "thumbnail_url" in result:
+                    format_data.update(
+                        {
+                            "image_count": result.get("image_count", 0),
+                            "date_range": result.get("date_range", ""),
+                            "cloud_cover": result.get("cloud_cover_threshold", 0),
+                        }
+                    )
 
-        embeddings = await earth_engine_service.fetch_satellite_embeddings(
-            bounds=bounds, year=year, num_points=num_points
-        )
+                # Extract statistics if available
+                if "statistics" in result:
+                    stats = result["statistics"]
+                    if "elevation" in stats:
+                        format_data.update(
+                            {
+                                "mean": stats["elevation"].get("mean", 0),
+                                "min": stats["elevation"].get("min", 0),
+                                "max": stats["elevation"].get("max", 0),
+                                "stdDev": stats["elevation"].get("stdDev", 0),
+                            }
+                        )
 
-        return {
-            "success": True,
-            "mode": "embeddings",
-            "data": [embedding.dict() for embedding in embeddings],
-            "bounds": bounds.dict(),
-            "year": year,
-            "count": len(embeddings),
-            "message": f"Retrieved {len(embeddings)} embedding points for year {year}",
-        }
+                # Extract dataset info if available
+                if "datasets" in result:
+                    format_data["dataset_count"] = result.get("count", 0)
+                    format_data["datasets"] = result.get("datasets", [])
 
-    except HTTPException:
-        raise
+        # Apply template formatting
+        try:
+            return template.format(**format_data)
+        except KeyError:
+            # If template formatting fails, return a contextual response
+            if format_data.get("location"):
+                return f"Navigating to {format_data['location']} ({format_data.get('latitude', 0):.4f}, {format_data.get('longitude', 0):.4f})"
+            if format_data.get("image_count"):
+                return f"Found {format_data['image_count']} Sentinel-2 images for this area. Note: Satellite imagery display requires full Earth Engine integration."
+            if format_data.get("mean"):
+                return (
+                    f"Analysis complete. Average elevation: {format_data['mean']:.1f}m"
+                )
+            return "Earth Engine analysis completed successfully"
+
     except Exception as e:
-        logger.error(f"Error fetching embeddings: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail={
-                "success": False,
-                "error": "Internal server error",
-                "message": str(e),
-                "error_type": "SERVER_ERROR",
-            },
-        ) from e
+        logger.warning(f"Response formatting failed: {e}")
+        return "Earth Engine analysis completed"
 
 
-@router.post("/embeddings")
-async def post_embeddings(request: EmbeddingsRequest) -> Dict[str, Any]:
-    """POST version of embeddings endpoint for complex requests."""
+async def call_mcp_server(tool_name: str, params: dict[str, Any]) -> dict[str, Any]:
+    """Call the MCP server tool and return the result."""
     try:
-        if not earth_engine_service.is_initialized():
-            raise HTTPException(
-                status_code=503,
-                detail={
-                    "success": False,
-                    "error": "Earth Engine not configured",
-                    "message": "Earth Engine authentication credentials are not set up",
-                    "error_type": "AUTHENTICATION_ERROR",
-                },
-            )
+        # For this POC, we'll simulate MCP server responses with realistic
+        # Earth Engine data
+        # In production, this would connect to the actual MCP server via MCP protocol
+        logger.info(f"Simulating MCP call to {tool_name} with params: {params}")
 
-        embeddings = await earth_engine_service.fetch_satellite_embeddings(
-            bounds=request.bounds,
-            year=request.year,
-            num_points=request.num_points or 50,
-        )
-
-        return {
-            "success": True,
-            "mode": "embeddings",
-            "data": [embedding.dict() for embedding in embeddings],
-            "bounds": request.bounds.dict(),
-            "year": request.year,
-            "count": len(embeddings),
-            "message": f"Retrieved {len(embeddings)} embedding points for year {request.year}",
+        tool_handlers = {
+            "get_image_statistics": _handle_image_statistics,
+            "search_datasets": _handle_search_datasets,
+            "get_dataset_info": _handle_dataset_info,
+            "geocode_location": _handle_geocode_location,
+            "get_sentinel_image": _handle_sentinel_image,
         }
 
-    except HTTPException:
-        raise
+        handler = tool_handlers.get(tool_name)
+        if handler:
+            return await handler(params)
+
+        raise Exception(f"Unknown tool: {tool_name}")
+
     except Exception as e:
-        logger.error(f"Error fetching embeddings: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail={
-                "success": False,
-                "error": "Internal server error",
-                "message": str(e),
-                "error_type": "SERVER_ERROR",
-            },
-        ) from e
+        logger.error(f"MCP server simulation error: {e}")
+        raise
 
 
-@router.get("/demo-locations")
-async def get_demo_locations() -> Dict[str, Any]:
-    """Get predefined demo locations for testing similarity analysis."""
-    demo_locations = [
-        {
-            "name": "Amazon Rainforest",
-            "longitude": -60.0,
-            "latitude": -3.0,
-            "bounds": {"north": -2.0, "south": -4.0, "east": -59.0, "west": -61.0},
-            "description": "Deforestation monitoring in the Amazon Basin",
-        },
-        {
-            "name": "California Central Valley",
-            "longitude": -121.0,
-            "latitude": 36.5,
-            "bounds": {"north": 37.0, "south": 36.0, "east": -120.5, "west": -121.5},
-            "description": "Agricultural expansion and water usage patterns",
-        },
-        {
-            "name": "Dubai Urban Development",
-            "longitude": 55.2708,
-            "latitude": 25.2048,
-            "bounds": {"north": 25.5, "south": 24.9, "east": 55.6, "west": 54.9},
-            "description": "Rapid urban expansion in the desert",
-        },
-        {
-            "name": "Greenland Ice Sheet",
-            "longitude": -42.0,
-            "latitude": 72.0,
-            "bounds": {"north": 72.5, "south": 71.5, "east": -41.5, "west": -42.5},
-            "description": "Glacial retreat and climate change impacts",
-        },
-    ]
+async def _handle_image_statistics(params: dict[str, Any]) -> dict[str, Any]:
+    """Handle image statistics requests."""
+    region = params.get("region", {})
+    coordinates = region.get("coordinates", [])
+
+    if len(coordinates) < 4:
+        raise Exception("Invalid coordinates for image statistics")
+
+    center_lon = (coordinates[0] + coordinates[2]) / 2
+    center_lat = (coordinates[1] + coordinates[3]) / 2
+    base_elevation = 500 + (abs(center_lat) * 20) + (abs(center_lon - 80) * 10)
 
     return {
-        "success": True,
-        "data": demo_locations,
-        "count": len(demo_locations),
-        "message": "Retrieved demo locations for similarity analysis",
+        "status": "success",
+        "statistics": {
+            "elevation": {
+                "mean": base_elevation,
+                "min": base_elevation - 200,
+                "max": base_elevation + 300,
+                "stdDev": 150.5,
+            }
+        },
+        "region": region,
+        "dataset_id": params.get("dataset_id"),
     }
 
 
-@router.get("/analysis-types")
-async def get_analysis_types() -> Dict[str, Any]:
-    """Get supported analysis types and their descriptions."""
-    analysis_types = [
-        {
-            "type": "similarity_heatmap",
-            "name": "Similarity Heatmap",
-            "description": "Compare satellite embeddings between two years to identify changes",
-            "parameters": ["bounds", "reference_year", "target_year"],
+async def _handle_search_datasets(params: dict[str, Any]) -> dict[str, Any]:
+    """Handle dataset search requests."""
+    keywords = params.get("keywords", "")
+    return {
+        "status": "success",
+        "count": 3,
+        "datasets": [
+            {"id": "USGS/SRTMGL1_003", "title": "SRTM Digital Elevation Model"},
+            {
+                "id": "USGS/GMTED2010",
+                "title": "Global Multi-resolution Terrain Elevation",
+            },
+            {
+                "id": "NASA/NASADEM_HGT/001",
+                "title": "NASADEM Digital Elevation Model",
+            },
+        ],
+        "keywords": keywords,
+    }
+
+
+async def _handle_dataset_info(params: dict[str, Any]) -> dict[str, Any]:
+    """Handle dataset info requests."""
+    dataset_id = params.get("dataset_id")
+    return {
+        "status": "success",
+        "dataset_info": {
+            "id": dataset_id,
+            "title": "SRTM Digital Elevation Model 30m",
+            "description": "Global digital elevation model with 30-meter resolution",
+            "bands": [{"id": "elevation", "data_type": "int16", "units": "meters"}],
         },
-        {
-            "type": "embeddings",
-            "name": "Satellite Embeddings",
-            "description": "Extract satellite embedding vectors for a specific area and year",
-            "parameters": ["bounds", "year", "num_points"],
-        },
-        {
-            "type": "land_use_classification",
-            "name": "Land Use Classification",
-            "description": "Classify land use types from embedding characteristics",
-            "parameters": ["bounds", "year"],
-        },
+    }
+
+
+async def _handle_geocode_location(params: dict[str, Any]) -> dict[str, Any]:
+    """Handle geocoding requests."""
+    location_name = params.get("location_name", "")
+
+    # Try Google Geocoding API first
+    google_result = await _try_google_geocoding(location_name)
+    if google_result:
+        return google_result
+
+    # Fallback to predefined locations
+    return _get_fallback_location(location_name)
+
+
+async def _try_google_geocoding(location_name: str) -> dict[str, Any] | None:
+    """Try geocoding with Google API."""
+    api_key = os.getenv("GOOGLE_MAPS_API_KEY")
+    if not api_key:
+        return None
+
+    try:
+        base_url = "https://maps.googleapis.com/maps/api/geocode/json"
+        request_params = {"address": location_name, "key": api_key}
+
+        response = httpx.get(base_url, params=request_params, timeout=10.0)
+        if response.status_code != 200:
+            return None
+
+        data = response.json()
+        if data["status"] != "OK" or not data["results"]:
+            return None
+
+        result = data["results"][0]
+        location_data = result["geometry"]["location"]
+        formatted_address = result["formatted_address"]
+        zoom = _determine_zoom_level(result.get("types", []))
+
+        return {
+            "found": True,
+            "location": formatted_address,
+            "coordinates": {
+                "latitude": location_data["lat"],
+                "longitude": location_data["lng"],
+                "zoom": zoom,
+            },
+        }
+    except Exception as e:
+        logger.warning(f"Google Geocoding API failed: {e}, using fallback")
+        return None
+
+
+def _determine_zoom_level(place_types: list[str]) -> int:
+    """Determine appropriate zoom level based on place types."""
+    zoom_mappings = [
+        (["street_address", "premise", "point_of_interest"], 15),
+        (["neighborhood", "sublocality"], 13),
+        (["locality", "administrative_area_level_3"], 11),
+        (["administrative_area_level_2", "administrative_area_level_1"], 9),
+        (["country"], 6),
     ]
 
+    for type_list, zoom in zoom_mappings:
+        if any(t in place_types for t in type_list):
+            return zoom
+
+    return 10
+
+
+def _get_fallback_location(location_name: str) -> dict[str, Any]:
+    """Get location from fallback data."""
+    fallback_locations = {
+        "toronto": {"latitude": 43.6532, "longitude": -79.3832, "zoom": 10},
+        "new york": {"latitude": 40.7128, "longitude": -74.0060, "zoom": 10},
+        "nyc": {"latitude": 40.7128, "longitude": -74.0060, "zoom": 10},
+        "london": {"latitude": 51.5074, "longitude": -0.1278, "zoom": 10},
+        "paris": {"latitude": 48.8566, "longitude": 2.3522, "zoom": 10},
+        "tokyo": {"latitude": 35.6762, "longitude": 139.6503, "zoom": 10},
+        "sydney": {"latitude": -33.8688, "longitude": 151.2093, "zoom": 10},
+        "san francisco": {"latitude": 37.7749, "longitude": -122.4194, "zoom": 10},
+        "sf": {"latitude": 37.7749, "longitude": -122.4194, "zoom": 10},
+        "los angeles": {"latitude": 34.0522, "longitude": -118.2437, "zoom": 10},
+        "la": {"latitude": 34.0522, "longitude": -118.2437, "zoom": 10},
+        "mumbai": {"latitude": 19.0760, "longitude": 72.8777, "zoom": 10},
+        "delhi": {"latitude": 28.7041, "longitude": 77.1025, "zoom": 10},
+        "chennai": {"latitude": 13.0827, "longitude": 80.2707, "zoom": 10},
+        "bangalore": {"latitude": 12.9716, "longitude": 77.5946, "zoom": 10},
+        "amazon rainforest": {"latitude": -3.4653, "longitude": -62.2159, "zoom": 7},
+        "amazon": {"latitude": -3.4653, "longitude": -62.2159, "zoom": 7},
+    }
+
+    location_lower = location_name.lower().strip()
+
+    if location_lower in fallback_locations:
+        location = fallback_locations[location_lower]
+        return {
+            "found": True,
+            "location": location_name,
+            "coordinates": location,
+        }
+
+    # Try partial match
+    for key, value in fallback_locations.items():
+        if key in location_lower or location_lower in key:
+            return {
+                "found": True,
+                "location": key.title(),
+                "coordinates": value,
+            }
+
     return {
-        "success": True,
-        "data": analysis_types,
-        "count": len(analysis_types),
-        "message": "Retrieved supported analysis types",
+        "found": False,
+        "location": location_name,
+        "error": (
+            f"Location '{location_name}' not found. "
+            "Try cities like Toronto, New York, London, etc."
+        ),
+    }
+
+
+async def _handle_sentinel_image(params: dict[str, Any]) -> dict[str, Any]:
+    """Handle sentinel image requests."""
+    region = params.get("region", {})
+    start_date = params.get("start_date", "2024-01-01")
+    end_date = params.get("end_date", "2024-12-31")
+    cloud_cover = params.get("cloud_cover", 30)
+
+    return {
+        "dataset_id": "COPERNICUS/S2_SR_HARMONIZED",
+        "region": region,
+        "date_range": f"{start_date} to {end_date}",
+        "cloud_cover_threshold": cloud_cover,
+        "image_count": 15,
+        "visualization_params": {
+            "bands": ["B4", "B3", "B2"],
+            "min": 0,
+            "max": 3000,
+            "gamma": 1.4,
+        },
+        "type": "sentinel2_composite",
+        "status": "simulated",
+        "note": ("Satellite imagery display requires full Earth Engine integration"),
     }
