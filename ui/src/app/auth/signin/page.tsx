@@ -143,7 +143,7 @@ export default function SignIn() {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.6 }}
         >
-          <p className="text-gray-400 text-sm mb-4">What you'll get access to:</p>
+          <p className="text-gray-400 text-sm mb-4">What you&apos;ll get access to:</p>
           <div className="grid grid-cols-2 gap-4 text-xs">
             <div className="bg-white/5 backdrop-blur-sm rounded-lg p-3 border border-white/10">
               <div className="text-ocean-400 mb-1">🛰️</div>
