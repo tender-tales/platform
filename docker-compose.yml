@@ -27,7 +27,7 @@ services:
   backend:
     build:
       context: ./tender_tales
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.api
       args:
         - BACKEND_PORT=${BACKEND_PORT}
         - FRONTEND_PORT=${FRONTEND_PORT}
@@ -48,6 +48,33 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:${BACKEND_PORT}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  mcp-server:
+    build:
+      context: ./tender_tales
+      dockerfile: Dockerfile.mcp
+      args:
+        - MCP_PORT=${MCP_PORT}
+    image: tender-tales/platform:mcp-server-${BUILD_ID}
+    env_file: .env.production
+    ports:
+      - "${MCP_PORT}:${MCP_PORT}"
+    environment:
+      - MCP_PORT=${MCP_PORT}
+      - EARTH_ENGINE_PROJECT_ID=${EARTH_ENGINE_PROJECT_ID}
+      - GOOGLE_APPLICATION_CREDENTIALS=/run/secrets/earthengine-credentials
+      - DEBUG=${DEBUG}
+    secrets:
+      - earthengine-credentials
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${MCP_PORT}/health"]
       interval: 30s
       timeout: 10s
       retries: 3

@@ -55,7 +55,7 @@ jobs:
           export EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
           export DEBUG=${{ env.DEBUG }}
           export BUILD_ID=${{ env.BUILD_ID }}
-          docker compose build backend-dev
+          docker compose build backend
 
       - name: Build MCP server image
         run: |
@@ -64,7 +64,7 @@ jobs:
           export EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
           export DEBUG=${{ env.DEBUG }}
           export BUILD_ID=${{ env.BUILD_ID }}
-          docker compose build mcp-server-dev
+          docker compose build mcp-server
 
       - name: Google Auth for Testing
         if: github.actor != 'dependabot[bot]'
@@ -89,7 +89,7 @@ jobs:
             -e DEBUG=${{ env.DEBUG }} \
             -e GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json \
             -v $PWD/tender_tales/credentials.json:/app/credentials.json:ro \
-            tender-tales/platform:mcp-server-dev-${{ env.BUILD_ID }} \
+            tender-tales/platform:mcp-server-${{ env.BUILD_ID }} \
             sh -c "cd /app/mcp_server && uv run python test_mcp_client.py"
 
           # Test that the server can start successfully (run briefly)
@@ -101,7 +101,7 @@ jobs:
             -e DEBUG=${{ env.DEBUG }} \
             -e GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json \
             -v $PWD/tender_tales/credentials.json:/app/credentials.json:ro \
-            tender-tales/platform:mcp-server-dev-${{ env.BUILD_ID }}
+            tender-tales/platform:mcp-server-${{ env.BUILD_ID }}
 
           # Wait for server to initialize
           sleep 10
@@ -132,10 +132,10 @@ jobs:
           export EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
           export DEBUG=${{ env.DEBUG }}
           export BUILD_ID=${{ env.BUILD_ID }}
-          docker compose up -d backend-dev
+          docker compose up -d backend
           sleep 30
           docker compose ps
-          docker compose logs backend-dev
+          docker compose logs backend
           docker compose down
 
   deploy:
