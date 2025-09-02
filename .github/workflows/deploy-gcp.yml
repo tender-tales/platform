@@ -55,7 +55,7 @@ jobs:
           export EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
           export DEBUG=${{ env.DEBUG }}
           export BUILD_ID=${{ env.BUILD_ID }}
-          docker compose build backend
+          docker compose build backend-dev
 
       - name: Build MCP server image
         run: |
@@ -64,13 +64,7 @@ jobs:
           export EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
           export DEBUG=${{ env.DEBUG }}
           export BUILD_ID=${{ env.BUILD_ID }}
-
-          # Copy credentials to MCP server directory for Docker build
-          cp tender_tales/credentials.json tender_tales/mcp_server/credentials.json
-
-          docker build -t tender-tales/platform:mcp-server-${{ env.BUILD_ID }} \
-            --build-arg MCP_PORT=${{ env.MCP_PORT }} \
-            ./tender_tales/mcp_server
+          docker compose build mcp-server-dev
 
       - name: Google Auth for Testing
         if: github.actor != 'dependabot[bot]'
@@ -95,8 +89,8 @@ jobs:
             -e DEBUG=${{ env.DEBUG }} \
             -e GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json \
             -v $PWD/tender_tales/credentials.json:/app/credentials.json:ro \
-            tender-tales/platform:mcp-server-${{ env.BUILD_ID }} \
-            uv run python test_mcp_client.py
+            tender-tales/platform:mcp-server-dev-${{ env.BUILD_ID }} \
+            sh -c "cd /app/mcp_server && uv run python test_mcp_client.py"
 
           # Test that the server can start successfully (run briefly)
           echo "=== Testing MCP Server Startup ==="
@@ -107,7 +101,7 @@ jobs:
             -e DEBUG=${{ env.DEBUG }} \
             -e GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json \
             -v $PWD/tender_tales/credentials.json:/app/credentials.json:ro \
-            tender-tales/platform:mcp-server-${{ env.BUILD_ID }}
+            tender-tales/platform:mcp-server-dev-${{ env.BUILD_ID }}
 
           # Wait for server to initialize
           sleep 10
@@ -138,10 +132,10 @@ jobs:
           export EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
           export DEBUG=${{ env.DEBUG }}
           export BUILD_ID=${{ env.BUILD_ID }}
-          docker compose up -d backend
+          docker compose up -d backend-dev
           sleep 30
           docker compose ps
-          docker compose logs backend
+          docker compose logs backend-dev
           docker compose down
 
   deploy:
@@ -188,14 +182,15 @@ jobs:
 
       - name: Build and push backend image
         run: |
-          export COMPOSE_PROJECT_NAME=tender-tales-gcp
-          export BACKEND_PORT=${{ env.BACKEND_PORT }}
-          export FRONTEND_PORT=${{ env.FRONTEND_PORT }}
-          export BACKEND_HOST=${{ env.BACKEND_HOST }}
-          export EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
-          export DEBUG=${{ env.DEBUG }}
           export BUILD_ID=${{ env.BUILD_ID }}
-          docker compose build backend
+          export EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
+
+          # Build backend using new unified Dockerfile
+          docker build -t tender-tales/platform:backend-${{ env.BUILD_ID }} \
+            --build-arg BACKEND_PORT=${{ env.BACKEND_PORT }} \
+            --build-arg FRONTEND_PORT=${{ env.FRONTEND_PORT }} \
+            -f ./tender_tales/Dockerfile.api \
+            ./tender_tales
 
           # Tag and push backend
           docker tag tender-tales/platform:backend-${{ env.BUILD_ID }} \
@@ -207,12 +202,11 @@ jobs:
           export BUILD_ID=${{ env.BUILD_ID }}
           export EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
 
-          # Copy credentials to MCP server directory for Docker build
-          cp tender_tales/credentials.json tender_tales/mcp_server/credentials.json
-
+          # Build MCP server using new unified Dockerfile
           docker build -t tender-tales/platform:mcp-server-${{ env.BUILD_ID }} \
             --build-arg MCP_PORT=${{ env.MCP_PORT }} \
-            ./tender_tales/mcp_server
+            -f ./tender_tales/Dockerfile.mcp \
+            ./tender_tales
 
           # Tag and push MCP server
           docker tag tender-tales/platform:mcp-server-${{ env.BUILD_ID }} \
@@ -266,6 +260,12 @@ jobs:
             ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_FRONTEND }}:${{ github.sha }}
           docker push ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_FRONTEND }}:${{ github.sha }}
 
+      - name: Get Project Number
+        id: get-project-number
+        run: |
+          PROJECT_NUMBER=$(gcloud projects describe ${{ env.PROJECT_ID }} --format="value(projectNumber)")
+          echo "PROJECT_NUMBER=$PROJECT_NUMBER" >> $GITHUB_OUTPUT
+
       - name: Deploy Frontend to Cloud Run
         id: deploy-frontend
         uses: google-github-actions/deploy-cloudrun@v2
@@ -278,13 +278,8 @@ jobs:
             NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}
             GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
             GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+            NEXTAUTH_URL=https://${{ env.SERVICE_FRONTEND }}-${{ steps.get-project-number.outputs.PROJECT_NUMBER }}.${{ env.REGION }}.run.app
 
-      - name: Update Frontend with NEXTAUTH_URL
-        run: |
-          # Update the frontend service with the correct NEXTAUTH_URL
-          gcloud run services update ${{ env.SERVICE_FRONTEND }} \
-            --region=${{ env.REGION }} \
-            --update-env-vars NEXTAUTH_URL=${{ steps.deploy-frontend.outputs.url }}
 
       - name: Show deployment URLs
         run: |

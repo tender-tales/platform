@@ -30,7 +30,7 @@ services:
   backend-dev:
     build:
       context: ./tender_tales
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile.api
       args:
         - BACKEND_PORT=${BACKEND_PORT}
         - FRONTEND_PORT=${FRONTEND_PORT}
@@ -59,8 +59,10 @@ services:
 
   mcp-server-dev:
     build:
-      context: ./tender_tales/mcp_server
-      dockerfile: Dockerfile
+      context: ./tender_tales
+      dockerfile: Dockerfile.mcp
+      args:
+        - MCP_PORT=${MCP_PORT}
     image: tender-tales/platform:mcp-server-dev-${BUILD_ID:-latest}
     env_file: .env.development
     ports:
@@ -71,7 +73,7 @@ services:
       - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
       - DEBUG=${DEBUG}
     volumes:
-      - ./tender_tales/mcp_server:/app
+      - ./tender_tales:/app
       - ${HOME}/.config/earthengine/credentials:/app/credentials.json:ro
     networks:
       - app-network
