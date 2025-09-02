@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from services.llm_service import LLMQueryProcessor
-from services.logging_config import setup_module_logger
+from shared.logging_config import setup_module_logger
 
 
 logger = setup_module_logger("kadal.api.routes")

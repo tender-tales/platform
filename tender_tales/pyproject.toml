@@ -1,24 +1,27 @@
 [project]
-name = "tender-tales"
+name = "tender-tales-platform"
 version = "0.1.0"
-description = "API for Tender Tales platform"
+description = "Tender Tales Platform - API and MCP Server"
 readme = "README.md"
 authors = [{name = "Amrit Krishnan", email = "amrit110@gmail.com"}]
 license = "Apache-2.0"
-repository = "https://github.com/amrit110/tender-tales"
+repository = "https://github.com/tender-tales/platform"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.104.0",
     "uvicorn[standard]>=0.24.0",
+    "mcp>=1.0.0",
     "pydantic>=2.4.0",
     "pydantic-settings>=2.0.0",
     "earthengine-api>=0.1.384",
     "google-auth>=2.17.0",
+    "google-cloud-storage>=2.10.0",
     "numpy>=1.24.0",
     "python-multipart>=0.0.6",
     "python-jose[cryptography]>=3.3.0",
     "passlib[bcrypt]>=1.7.4",
     "httpx>=0.25.0",
+    "aiohttp>=3.8.0",
     "python-dotenv>=1.0.0",
     "colorlog>=6.8.0",
     "rich>=13.7.0",
@@ -32,7 +35,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["api/", "services"]
+packages = ["api/", "mcp_server/", "services/", "shared/"]
 
 [dependency-groups]
 dev = [

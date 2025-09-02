@@ -8,7 +8,7 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 
 from api.config import settings
-from services.logging_config import setup_module_logger
+from shared.logging_config import setup_module_logger
 
 
 logger = setup_module_logger("kadal.services.earth_engine")
