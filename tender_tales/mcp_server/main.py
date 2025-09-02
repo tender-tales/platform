@@ -10,16 +10,17 @@ import os
 from typing import Any, Optional, cast
 
 import ee
+from config import MCPConfig
 from google.auth.transport.requests import Request as GoogleRequest
 from google.oauth2.credentials import Credentials
 from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel
 from starlette.requests import Request
 from starlette.responses import JSONResponse
-
-from config import MCPConfig
-from logging_config import setup_logging, silence_noisy_loggers
 from tools import EarthEngineTools
+
+from shared.logging_config import setup_logging, silence_noisy_loggers
+
 
 # Set up colorized logging
 logger = setup_logging(
@@ -46,7 +47,7 @@ class Region(BaseModel):
     coordinates: list[float]  # [west, south, east, north]
 
 
-@mcp.tool()  # type: ignore[misc]
+@mcp.tool()
 async def get_dataset_info(dataset_id: str) -> dict[str, Any]:
     """Get detailed information about a Google Earth Engine dataset.
 
@@ -60,7 +61,7 @@ async def get_dataset_info(dataset_id: str) -> dict[str, Any]:
     return cast(dict[str, Any], result)
 
 
-@mcp.tool()  # type: ignore[misc]
+@mcp.tool()
 async def search_datasets(keywords: str, limit: int = 10) -> dict[str, Any]:
     """Search for Earth Engine datasets by keywords with conservation focus.
 
@@ -75,7 +76,7 @@ async def search_datasets(keywords: str, limit: int = 10) -> dict[str, Any]:
     return cast(dict[str, Any], result)
 
 
-@mcp.tool()  # type: ignore[misc]
+@mcp.tool()
 async def get_image_statistics(
     dataset_id: str, region: Region, scale: int = 1000
 ) -> dict[str, Any]:
@@ -83,7 +84,8 @@ async def get_image_statistics(
 
     Args:
         dataset_id: The Earth Engine image dataset ID
-        region: Geographic region with type "rectangle" and coordinates [west, south, east, north]
+        region: Geographic region with type "rectangle" and coordinates
+        [west, south, east, north]
         scale: Scale in meters for the computation (default: 1000)
 
     """
@@ -93,11 +95,11 @@ async def get_image_statistics(
     return cast(dict[str, Any], result)
 
 
-@mcp.tool()  # type: ignore[misc]
+@mcp.tool()
 async def analyze_land_cover_change(
     region: Region, start_date: str, end_date: str
 ) -> dict[str, Any]:
-    """Analyze land cover changes between two time periods using Hansen Global Forest Change data.
+    """Analyze land cover changes between two time periods using Hansen Global data.
 
     Args:
         region: Geographic region to analyze
@@ -122,7 +124,7 @@ async def analyze_land_cover_change(
     return cast(dict[str, Any], result)
 
 
-@mcp.tool()  # type: ignore[misc]
+@mcp.tool()
 async def visualize_image(
     dataset_id: str,
     region: Region,
@@ -155,7 +157,7 @@ async def visualize_image(
     return cast(dict[str, Any], result)
 
 
-@mcp.tool()  # type: ignore[misc]
+@mcp.tool()
 async def get_sentinel_image(
     region: Region,
     start_date: str = "2024-01-01",
@@ -185,7 +187,7 @@ async def get_sentinel_image(
     return cast(dict[str, Any], result)
 
 
-@mcp.tool()  # type: ignore[misc]
+@mcp.tool()
 async def geocode_location(location_name: str) -> dict[str, Any]:
     """Geocode a location name to coordinates.
 

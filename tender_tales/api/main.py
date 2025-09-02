@@ -9,17 +9,17 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.config import settings
-from api.logging_config import setup_logging
 from api.routes import router
 from services.earth_engine import earth_engine_service
+from shared.logging_config import setup_structured_logging
 
 
 # Load environment variables
 load_dotenv()
 
 # Set up logging before anything else
-setup_logging()
-logger = logging.getLogger("kadal.api.main")
+setup_structured_logging(debug=settings.debug)
+logger = logging.getLogger("api.main")
 
 
 @asynccontextmanager

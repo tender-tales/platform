@@ -8,7 +8,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel
 
 from api.config import settings
-from services.logging_config import setup_module_logger
+from shared.logging_config import setup_module_logger
 
 
 logger = setup_module_logger("kadal.services.llm")
