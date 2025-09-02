@@ -180,6 +180,10 @@ jobs:
           BACKEND_HOST=${{ env.BACKEND_HOST }}
           EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
           DEBUG=${{ env.DEBUG }}
+          # NextAuth Configuration
+          NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}
+          GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
           EOF
 
       - name: Build and push backend image
@@ -249,10 +253,13 @@ jobs:
           export DEBUG=${{ env.DEBUG }}
           export BUILD_ID=${{ env.BUILD_ID }}
 
-          # Build frontend with the deployed backend URL
+          # Build frontend with the deployed backend URL and NextAuth config
           docker compose build frontend \
             --build-arg NEXT_PUBLIC_MAPBOX_API_KEY=${{ secrets.MAPBOX_API_KEY }} \
-            --build-arg NEXT_PUBLIC_BACKEND_URL=${{ steps.deploy-backend.outputs.url }}
+            --build-arg NEXT_PUBLIC_BACKEND_URL=${{ steps.deploy-backend.outputs.url }} \
+            --build-arg NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }} \
+            --build-arg GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
+            --build-arg GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
 
           # Tag and push frontend
           docker tag tender-tales/platform:frontend-${{ env.BUILD_ID }} \
@@ -267,6 +274,17 @@ jobs:
           region: ${{ env.REGION }}
           image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_FRONTEND }}:${{ github.sha }}
           flags: '--allow-unauthenticated --memory=512Mi --cpu=1 --timeout=300 --max-instances=10'
+          env_vars: |
+            NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}
+            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+
+      - name: Update Frontend with NEXTAUTH_URL
+        run: |
+          # Update the frontend service with the correct NEXTAUTH_URL
+          gcloud run services update ${{ env.SERVICE_FRONTEND }} \
+            --region=${{ env.REGION }} \
+            --update-env-vars NEXTAUTH_URL=${{ steps.deploy-frontend.outputs.url }}
 
       - name: Show deployment URLs
         run: |
