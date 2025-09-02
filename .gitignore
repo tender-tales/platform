@@ -44,3 +44,4 @@ site/
 
 # credentials
 **credentials.json
+**earth-engine-key.json

@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import AuthProvider from '@/components/auth/auth-provider'
+import { getServerAuthSession } from '@/lib/auth'
 
 export const metadata: Metadata = {
   title: 'Tender Tales - Satellite Change Detection Platform',
@@ -13,15 +15,19 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const session = await getServerAuthSession()
+
   return (
     <html lang="en">
       <body className="antialiased">
-        {children}
+        <AuthProvider session={session}>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   )

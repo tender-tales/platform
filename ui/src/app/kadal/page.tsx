@@ -5,9 +5,11 @@ import Map, { NavigationControl, Source, Layer } from 'react-map-gl/mapbox'
 import type { MapRef } from 'react-map-gl/mapbox'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, MapPin, Send, Waves, Loader, User, Menu, X } from 'lucide-react'
+import { ArrowLeft, MapPin, Send, Waves, Loader, User, Menu, X, LogOut, Settings } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useSession, signOut } from 'next-auth/react'
 import Image from 'next/image'
+import SignInModal from '@/components/auth/signin-modal'
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_API_KEY
 
@@ -31,8 +33,10 @@ interface ChatMessage {
   data?: any;
 }
 
-export default function MapPage() {
+function MapPageContent() {
   const router = useRouter()
+  const { data: session, status } = useSession()
+  const [showSignInModal, setShowSignInModal] = useState(false)
   const mapRef = useRef<MapRef>(null)
   const [viewState, setViewState] = useState<ViewState>(INITIAL_VIEW_STATE)
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -41,6 +45,7 @@ export default function MapPage() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [visualizationData, setVisualizationData] = useState<any>(null)
+  const isAuthenticated = status === 'authenticated'
 
   const handleViewStateChange = useCallback((evt: any) => {
     setViewState(evt.viewState)
@@ -49,6 +54,16 @@ export default function MapPage() {
   const handleGoBack = () => {
     router.push('/')
   }
+
+  // Show sign-in modal for unauthenticated users after a delay
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      const timer = setTimeout(() => {
+        setShowSignInModal(true)
+      }, 3000) // Show modal after 3 seconds
+      return () => clearTimeout(timer)
+    }
+  }, [status])
 
   // Keyboard shortcuts for sidebar
   useEffect(() => {
@@ -59,15 +74,24 @@ export default function MapPage() {
       if (e.key === 'Escape' && chatOpen) {
         setChatOpen(false)
       }
+      if (e.key === 'Escape' && showSignInModal) {
+        setShowSignInModal(false)
+      }
     }
 
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [sidebarOpen, chatOpen])
+  }, [sidebarOpen, chatOpen, showSignInModal])
 
   const handleChatSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!chatInput.trim() || isLoading) return
+
+    // Show sign-in modal for unauthenticated users trying to use the assistant
+    if (!isAuthenticated) {
+      setShowSignInModal(true)
+      return
+    }
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
@@ -348,34 +372,92 @@ export default function MapPage() {
 
             {/* User Section */}
             <div className="p-6 border-b border-gray-700">
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <div className="w-9 h-9 bg-gradient-to-br from-ocean-500 via-ocean-600 to-ocean-700 rounded-full flex items-center justify-center shadow-md ring-1 ring-ocean-400/20">
-                    <User className="w-4 h-4 text-white" />
+              {isAuthenticated ? (
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    {session?.user?.image ? (
+                      <Image
+                        src={session.user.image}
+                        alt={session.user.name || 'User'}
+                        width={36}
+                        height={36}
+                        className="rounded-full ring-1 ring-ocean-400/20"
+                      />
+                    ) : (
+                      <div className="w-9 h-9 bg-gradient-to-br from-ocean-500 via-ocean-600 to-ocean-700 rounded-full flex items-center justify-center shadow-md ring-1 ring-ocean-400/20">
+                        <User className="w-4 h-4 text-white" />
+                      </div>
+                    )}
+                    <div className="absolute -bottom-0 -right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-900 shadow-sm"></div>
                   </div>
-                  <div className="absolute -bottom-0 -right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-900 shadow-sm"></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white font-medium truncate">{session?.user?.name || 'User'}</p>
+                    <p className="text-gray-400 text-sm truncate">{session?.user?.email}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-white font-medium">Demo User</p>
-                  <p className="text-gray-400 text-sm">demo@tendertales.com</p>
+              ) : (
+                <div className="text-center py-4">
+                  <div className="w-9 h-9 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <User className="w-4 h-4 text-gray-400" />
+                  </div>
+                  <p className="text-gray-400 text-sm mb-3">Sign in to unlock all features</p>
+                  <button
+                    onClick={() => setShowSignInModal(true)}
+                    className="text-xs bg-ocean-600 hover:bg-ocean-700 text-white px-3 py-1 rounded-full transition-colors"
+                  >
+                    Sign In
+                  </button>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Navigation */}
             <div className="p-4">
               <nav className="space-y-2">
                 <button
-                  onClick={() => setChatOpen(!chatOpen)}
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      setShowSignInModal(true)
+                      return
+                    }
+                    setChatOpen(!chatOpen)
+                  }}
                   className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors ${
-                    chatOpen
+                    chatOpen && isAuthenticated
                       ? 'bg-ocean-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                      : isAuthenticated
+                      ? 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                      : 'text-gray-500 hover:bg-gray-800/50'
                   }`}
                 >
                   <Waves className="w-5 h-5" />
                   <span className="font-medium">Kadal Assistant</span>
+                  {!isAuthenticated && (
+                    <span className="ml-auto text-xs bg-ocean-600 text-white px-2 py-1 rounded-full">
+                      Sign In
+                    </span>
+                  )}
                 </button>
+
+                {isAuthenticated && (
+                  <>
+                    <button
+                      onClick={() => router.push('/account')}
+                      className="w-full flex items-center gap-3 p-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+                    >
+                      <Settings className="w-5 h-5" />
+                      <span className="font-medium">Account Settings</span>
+                    </button>
+
+                    <button
+                      onClick={() => signOut({ callbackUrl: '/' })}
+                      className="w-full flex items-center gap-3 p-3 rounded-lg text-gray-300 hover:bg-red-900/50 hover:text-red-300 transition-colors"
+                    >
+                      <LogOut className="w-5 h-5" />
+                      <span className="font-medium">Sign Out</span>
+                    </button>
+                  </>
+                )}
               </nav>
             </div>
 
@@ -588,6 +670,16 @@ export default function MapPage() {
           Zoom: {viewState.zoom.toFixed(1)}x
         </div>
       </motion.div>
+
+      {/* Sign In Modal */}
+      <SignInModal
+        isOpen={showSignInModal}
+        onClose={() => setShowSignInModal(false)}
+      />
     </div>
   )
+}
+
+export default function MapPage() {
+  return <MapPageContent />
 }
