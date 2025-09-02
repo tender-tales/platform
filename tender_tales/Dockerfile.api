@@ -26,5 +26,6 @@ RUN echo "BACKEND_PORT: ${BACKEND_PORT}"
 # Expose the backend port
 EXPOSE ${BACKEND_PORT}
 
-# Run the API server
-CMD sh -c "uv run uvicorn api.main:app --host 0.0.0.0 --reload --port ${BACKEND_PORT}"
+# Run the API server (use PORT for Cloud Run compatibility, fallback to BACKEND_PORT)
+# Use RELOAD env var to control reload behavior: enabled for dev, disabled for prod
+CMD sh -c "if [ \"${RELOAD:-false}\" = \"true\" ]; then uv run uvicorn api.main:app --host 0.0.0.0 --reload --port ${PORT:-${BACKEND_PORT}}; else uv run uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-${BACKEND_PORT}}; fi"

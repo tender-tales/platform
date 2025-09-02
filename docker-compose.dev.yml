@@ -44,6 +44,7 @@ services:
       - EARTH_ENGINE_PROJECT_ID=${EARTH_ENGINE_PROJECT_ID}
       - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
       - DEBUG=${DEBUG}
+      - RELOAD=true
     volumes:
       - ./tender_tales:/app
       - ${HOME}/.config/earthengine/credentials:/app/credentials.json:ro

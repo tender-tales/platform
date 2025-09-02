@@ -41,6 +41,7 @@ services:
       - EARTH_ENGINE_PROJECT_ID=${EARTH_ENGINE_PROJECT_ID}
       - GOOGLE_APPLICATION_CREDENTIALS=/run/secrets/earthengine-credentials
       - DEBUG=${DEBUG}
+      - RELOAD=${RELOAD:-false}
     secrets:
       - earthengine-credentials
     networks:

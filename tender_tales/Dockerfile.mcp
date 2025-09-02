@@ -33,4 +33,5 @@ EXPOSE ${MCP_PORT}
 
 # Change to mcp_server directory and run the MCP server
 WORKDIR /app/mcp_server
-CMD sh -c "uv run python main.py"
+# Set PORT environment variable for the MCP server to use
+CMD sh -c "export PORT=${PORT:-${MCP_PORT}} && uv run python main.py"
