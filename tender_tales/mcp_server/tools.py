@@ -5,7 +5,9 @@ from typing import Any, Optional
 
 import aiohttp
 import ee
+
 from shared.logging_config import setup_module_logger
+
 
 logger = setup_module_logger("kadal.mcp.tools")
 

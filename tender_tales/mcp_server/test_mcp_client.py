@@ -6,7 +6,6 @@ import sys
 import traceback
 
 import ee
-
 import tools
 
 # Import only the config to avoid running the server
