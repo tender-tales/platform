@@ -55,7 +55,7 @@ jobs:
           export EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
           export DEBUG=${{ env.DEBUG }}
           export BUILD_ID=${{ env.BUILD_ID }}
-          docker compose build backend-dev
+          docker compose -f docker-compose.dev.yml build backend-dev
 
       - name: Build MCP server image
         run: |
@@ -64,7 +64,7 @@ jobs:
           export EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
           export DEBUG=${{ env.DEBUG }}
           export BUILD_ID=${{ env.BUILD_ID }}
-          docker compose build mcp-server-dev
+          docker compose -f docker-compose.dev.yml build mcp-server-dev
 
       - name: Google Auth for Testing
         if: github.actor != 'dependabot[bot]'
@@ -132,11 +132,11 @@ jobs:
           export EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
           export DEBUG=${{ env.DEBUG }}
           export BUILD_ID=${{ env.BUILD_ID }}
-          docker compose up -d backend-dev
+          docker compose -f docker-compose.dev.yml up -d backend-dev
           sleep 30
-          docker compose ps
-          docker compose logs backend-dev
-          docker compose down
+          docker compose -f docker-compose.dev.yml ps
+          docker compose -f docker-compose.dev.yml logs backend-dev
+          docker compose -f docker-compose.dev.yml down
 
   deploy:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
