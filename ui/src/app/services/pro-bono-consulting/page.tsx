@@ -1,12 +1,12 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { ArrowLeft, Heart, Leaf, Shield, Users, Globe, Target, Mail } from 'lucide-react'
+import { ArrowLeft, Briefcase, Target, Users, Clock, CheckCircle, Lightbulb, Mail } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 
-export default function ConservationPartnershipPage() {
+export default function ProBonoConsultingPage() {
   const router = useRouter()
 
   const handleGoBack = () => {
@@ -19,37 +19,37 @@ export default function ConservationPartnershipPage() {
     transition: { duration: 0.6 }
   }
 
-  const services = [
-    {
-      icon: Globe,
-      title: "Environmental Impact Assessment",
-      description: "Comprehensive analysis of environmental risks and opportunities using advanced geospatial technologies and data science."
-    },
+  const consultingServices = [
     {
       icon: Target,
-      title: "Strategic Conservation Planning",
-      description: "Data-driven strategies to optimize conservation efforts, maximize impact, and ensure sustainable outcomes for vulnerable ecosystems."
+      title: "Strategic Planning",
+      description: "Develop comprehensive project strategies and roadmaps to maximize environmental impact and sustainability outcomes."
     },
     {
-      icon: Shield,
-      title: "Ecosystem Monitoring Solutions",
-      description: "Implementation of cutting-edge monitoring systems to track ecosystem health, biodiversity, and environmental changes over time."
+      icon: Lightbulb,
+      title: "Technical Advisory",
+      description: "Expert guidance on technology implementation, data analysis methodologies, and best practices for conservation projects."
     },
     {
       icon: Users,
-      title: "Capacity Building & Training",
-      description: "Empowering conservation teams with technical knowledge, tools, and methodologies to enhance their environmental protection efforts."
+      title: "Project Management",
+      description: "End-to-end project management support including timeline development, resource allocation, and stakeholder coordination."
+    },
+    {
+      icon: CheckCircle,
+      title: "Impact Assessment",
+      description: "Rigorous evaluation frameworks to measure project effectiveness and demonstrate measurable environmental outcomes."
     }
   ]
 
-  const eligibleOrganizations = [
-    "Environmental non-profits and NGOs",
-    "Wildlife conservation organizations",
-    "Marine protection groups",
-    "Forest and habitat preservation societies",
-    "Indigenous community conservation initiatives",
-    "Academic research institutions focused on environmental science",
-    "Community-based conservation programs"
+  const projectTypes = [
+    "Ecosystem restoration initiatives",
+    "Biodiversity monitoring projects",
+    "Climate change adaptation studies",
+    "Marine conservation efforts",
+    "Wildlife protection programs",
+    "Environmental policy research",
+    "Community-based conservation projects"
   ]
 
   return (
@@ -98,15 +98,15 @@ export default function ConservationPartnershipPage() {
         >
           <div className="flex justify-center mb-6">
             <div className="p-4 bg-gradient-to-r from-ocean-500/20 to-green-500/20 rounded-full">
-              <Heart className="w-12 h-12 text-ocean-400" />
+              <Briefcase className="w-12 h-12 text-ocean-400" />
             </div>
           </div>
           <h1 className="text-4xl md:text-6xl font-bold mb-6">
-            Conservation <span className="text-ocean-400">Partnership</span>
+            Pro Bono <span className="text-ocean-400">Consulting</span>
           </h1>
         </motion.div>
 
-        {/* Mission Statement */}
+        {/* Purpose Statement */}
         <motion.div
           className="max-w-4xl mx-auto mb-16"
           variants={fadeInUp}
@@ -116,17 +116,17 @@ export default function ConservationPartnershipPage() {
         >
           <div className="bg-gradient-to-r from-ocean-900/30 to-ocean-800/30 rounded-xl p-6 border border-ocean-500/20">
             <div className="flex items-center gap-3 mb-4">
-              <Leaf className="w-6 h-6 text-green-400" />
-              <h2 className="text-2xl font-bold text-white">Our Purpose</h2>
+              <Clock className="w-6 h-6 text-green-400" />
+              <h2 className="text-2xl font-bold text-white">Our Approach</h2>
             </div>
             <p className="text-gray-300 leading-relaxed">
-              Empower non-profit organizations and conservation groups to protect endangered ecosystems
-              using cutting-edge technology and expertise.
+              Provide expert consulting services to environmental projects that demonstrate significant conservation impact
+              and measurable outcomes for ecosystem protection and biodiversity preservation.
             </p>
           </div>
         </motion.div>
 
-        {/* Services */}
+        {/* Consulting Services */}
         <motion.div
           className="max-w-6xl mx-auto mb-16"
           variants={fadeInUp}
@@ -136,15 +136,15 @@ export default function ConservationPartnershipPage() {
         >
           <div className="text-center mb-8">
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
-              How We <span className="text-ocean-400">Help</span>
+              Consulting <span className="text-ocean-400">Expertise</span>
             </h2>
             <p className="text-gray-300 max-w-2xl mx-auto">
-              Comprehensive partnership services for conservation organizations.
+              Comprehensive consulting services tailored to your project needs.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {services.map((service, index) => {
+            {consultingServices.map((service, index) => {
               const Icon = service.icon
               return (
                 <motion.div
@@ -168,7 +168,7 @@ export default function ConservationPartnershipPage() {
           </div>
         </motion.div>
 
-        {/* Eligible Organizations */}
+        {/* Project Types */}
         <motion.div
           className="max-w-4xl mx-auto mb-16"
           variants={fadeInUp}
@@ -179,21 +179,21 @@ export default function ConservationPartnershipPage() {
           <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700">
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold text-white mb-3">
-                Who We <span className="text-ocean-400">Work With</span>
+                Project <span className="text-ocean-400">Focus Areas</span>
               </h2>
               <p className="text-gray-300">
-                Organizations making measurable environmental impact.
+                We consult on projects with clear conservation objectives and measurable impact.
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {eligibleOrganizations.map((org, index) => (
+              {projectTypes.map((project, index) => (
                 <div
                   key={index}
                   className="flex items-center gap-3 p-3 bg-gray-700/30 rounded-lg"
                 >
                   <div className="w-1.5 h-1.5 bg-ocean-400 rounded-full flex-shrink-0" />
-                  <span className="text-gray-300 text-sm">{org}</span>
+                  <span className="text-gray-300 text-sm">{project}</span>
                 </div>
               ))}
             </div>
@@ -210,10 +210,10 @@ export default function ConservationPartnershipPage() {
         >
           <div className="bg-gradient-to-r from-ocean-500/10 to-ocean-400/10 rounded-xl p-6 border border-ocean-500/20">
             <h2 className="text-xl font-bold text-white mb-3">
-              Ready to Partner With Us?
+              Need Consulting Support?
             </h2>
             <p className="text-gray-300 mb-4">
-              Let's discuss how we can support your conservation efforts.
+              Let's explore how our expertise can advance your project.
             </p>
             <Link
               href="/contact"

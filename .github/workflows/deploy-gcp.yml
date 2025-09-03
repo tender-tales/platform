@@ -178,6 +178,8 @@ jobs:
           NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}
           GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+          # Web3Forms Configuration
+          WEB3FORMS_ACCESS_KEY=${{ secrets.WEB3FORMS_ACCESS_KEY }}
           EOF
 
       - name: Build and push backend image
@@ -253,7 +255,8 @@ jobs:
             --build-arg NEXT_PUBLIC_BACKEND_URL=${{ steps.deploy-backend.outputs.url }} \
             --build-arg NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }} \
             --build-arg GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
-            --build-arg GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+            --build-arg GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }} \
+            --build-arg WEB3FORMS_ACCESS_KEY=${{ secrets.WEB3FORMS_ACCESS_KEY }}
 
           # Tag and push frontend
           docker tag tender-tales/platform:frontend-${{ env.BUILD_ID }} \
@@ -278,6 +281,7 @@ jobs:
             NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}
             GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
             GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+            WEB3FORMS_ACCESS_KEY=${{ secrets.WEB3FORMS_ACCESS_KEY }}
             NEXTAUTH_URL=https://${{ env.SERVICE_FRONTEND }}-${{ steps.get-project-number.outputs.PROJECT_NUMBER }}.${{ env.REGION }}.run.app
 
 

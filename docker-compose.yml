@@ -8,6 +8,7 @@ services:
         - FRONTEND_PORT=${FRONTEND_PORT}
         - BACKEND_PORT=${BACKEND_PORT}
         - BACKEND_HOST=${BACKEND_HOST}
+        - WEB3FORMS_ACCESS_KEY=${WEB3FORMS_ACCESS_KEY}
     image: tender-tales/platform:frontend-${BUILD_ID}
     env_file: .env.production
     ports:

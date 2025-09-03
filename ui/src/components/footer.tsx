@@ -109,6 +109,14 @@ export default function Footer() {
                   Conservation Partnership
                 </Link>
               </li>
+              <li>
+                <Link
+                  href="/services/pro-bono-consulting"
+                  className="text-gray-400 hover:text-white transition-colors duration-200"
+                >
+                  Pro Bono Consulting
+                </Link>
+              </li>
             </ul>
           </div>
         </div>
