@@ -213,7 +213,7 @@ export default function ProBonoConsultingPage() {
               Need Consulting Support?
             </h2>
             <p className="text-gray-300 mb-4">
-              Let's explore how our expertise can advance your project.
+              Let&apos;s explore how our expertise can advance your project.
             </p>
             <Link
               href="/contact"

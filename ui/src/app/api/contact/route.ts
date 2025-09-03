@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
+  let name, email, organization, subject, message
+
   try {
-    const { name, email, organization, subject, message } = await request.json()
+    const data = await request.json()
+    name = data.name
+    email = data.email
+    organization = data.organization
+    subject = data.subject
+    message = data.message
 
     // Validate required fields
     if (!name || !email || !subject || !message) {
@@ -82,8 +89,8 @@ Contact Email: ${email}
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error sending email via webhook:', {
-      message: error.message,
-      stack: error.stack
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
     })
 
     // Fallback: Log the contact form submission

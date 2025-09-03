@@ -213,7 +213,7 @@ export default function ConservationPartnershipPage() {
               Ready to Partner With Us?
             </h2>
             <p className="text-gray-300 mb-4">
-              Let's discuss how we can support your conservation efforts.
+              Let&apos;s discuss how we can support your conservation efforts.
             </p>
             <Link
               href="/contact"

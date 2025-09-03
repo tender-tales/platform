@@ -123,7 +123,7 @@ export default function ContactPage() {
             Get In <span className="text-ocean-400">Touch</span>
           </h1>
           <p className="text-xl text-gray-300 leading-relaxed max-w-3xl mx-auto">
-            Ready to make a difference? We'd love to hear from you.
+            Ready to make a difference? We&apos;d love to hear from you.
           </p>
         </motion.div>
 
