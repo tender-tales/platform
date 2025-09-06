@@ -21,6 +21,18 @@ export const authOptions: AuthOptions = {
       }
       return token
     },
+    async redirect({ url, baseUrl }) {
+      // If the redirect URL contains kadal, keep the user on the kadal page
+      if (url.includes('/kadal')) {
+        return `${baseUrl}/kadal`
+      }
+      // If redirecting from callback and no specific URL, go to kadal
+      if (url.startsWith(baseUrl)) {
+        return url
+      }
+      // Default to kadal for external URLs
+      return `${baseUrl}/kadal`
+    },
   },
   session: {
     strategy: 'jwt',
