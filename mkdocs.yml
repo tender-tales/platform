@@ -4,6 +4,7 @@ extra_javascript:
   - javascripts/mathjax.js
   - https://polyfill.io/v3/polyfill.min.js?features=es6
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+  - https://unpkg.com/mermaid@10.6.1/dist/mermaid.min.js
 extra:
   generator: false
   social:
@@ -20,7 +21,11 @@ markdown_extensions:
   - pymdownx.inlinehilite
   - pymdownx.details
   - pymdownx.snippets
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
@@ -30,7 +35,7 @@ markdown_extensions:
       permalink: true
 nav:
   - Home: index.md
-  - Google Earth Engine Setup: earth-engine-setup.md
+  - Agent Architecture: design.md
   - API Reference: api.md
 plugins:
   - search
