@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
-import Map, { NavigationControl, Source, Layer } from 'react-map-gl/mapbox'
+import Map, { NavigationControl } from 'react-map-gl/mapbox'
 import type { MapRef } from 'react-map-gl/mapbox'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -20,9 +20,9 @@ interface ViewState {
 }
 
 const INITIAL_VIEW_STATE: ViewState = {
-  longitude: 80.2707, // Chennai, India
-  latitude: 13.0827,
-  zoom: 12
+  longitude: -149.4, // French Polynesia
+  latitude: -17.6797,
+  zoom: 5
 }
 
 interface ChatMessage {
@@ -39,12 +39,10 @@ function MapPageContent() {
   const [showSignInModal, setShowSignInModal] = useState(false)
   const mapRef = useRef<MapRef>(null)
   const [viewState, setViewState] = useState<ViewState>(INITIAL_VIEW_STATE)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [chatOpen, setChatOpen] = useState(true)
   const [chatInput, setChatInput] = useState('')
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [visualizationData, setVisualizationData] = useState<any>(null)
   const isAuthenticated = status === 'authenticated'
 
   const handleViewStateChange = useCallback((evt: any) => {
@@ -65,12 +63,9 @@ function MapPageContent() {
     }
   }, [status])
 
-  // Keyboard shortcuts for sidebar
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && sidebarOpen) {
-        setSidebarOpen(false)
-      }
       if (e.key === 'Escape' && chatOpen) {
         setChatOpen(false)
       }
@@ -81,7 +76,17 @@ function MapPageContent() {
 
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [sidebarOpen, chatOpen, showSignInModal])
+  }, [chatOpen, showSignInModal])
+
+  // Handle map resize when sidebar state changes
+  useEffect(() => {
+    if (mapRef.current) {
+      const timer = setTimeout(() => {
+        mapRef.current?.resize()
+      }, 300) // Match the transition duration
+      return () => clearTimeout(timer)
+    }
+  }, [chatOpen])
 
   const handleChatSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -145,34 +150,8 @@ function MapPageContent() {
           }
         }
 
-        // Check for satellite imagery data in all results
-        const sentinelResult = response.data.find((result: any) => result.tool === 'get_sentinel_image')
-        if (sentinelResult && sentinelResult.result) {
-          // Only set visualization data if we have a valid thumbnail URL
-          if (sentinelResult.result.thumbnail_url && !sentinelResult.result.status?.includes('simulated')) {
-            setVisualizationData({
-              url: sentinelResult.result.thumbnail_url,
-              region: sentinelResult.result.region,
-              type: 'sentinel2',
-              metadata: {
-                dateRange: sentinelResult.result.date_range,
-                imageCount: sentinelResult.result.image_count,
-                cloudCover: sentinelResult.result.cloud_cover_threshold
-              }
-            })
-          }
-          // For now, we just acknowledge the satellite request without showing imagery
-          console.log('Satellite imagery requested:', sentinelResult.result)
-        }
       }
 
-      // If there's visualization data, update the map
-      if (response.visualizationUrl) {
-        setVisualizationData({
-          url: response.visualizationUrl,
-          region: response.region
-        })
-      }
     } catch (error) {
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -217,18 +196,16 @@ function MapPageContent() {
 
     return {
       message: data.response,
-      data: data.data,
-      visualizationUrl: data.visualization_url,
-      region: currentView
+      data: data.data
     }
   }
 
   const exampleQueries = [
     "Go to Toronto",
-    "Show satellite data for this area",
-    "Show me elevation data for this area",
+    "Navigate to Paris",
+    "Show me New York City",
     "Go to Amazon rainforest",
-    "Show Sentinel imagery for this location"
+    "Take me to Tokyo"
   ]
 
   if (!MAPBOX_TOKEN) {
@@ -250,263 +227,128 @@ function MapPageContent() {
   }
 
   return (
-    <div className="relative min-h-screen bg-gray-900">
-      {/* Header */}
+    <div className="flex h-screen bg-gray-900">
+      {/* Left Panel - Chat Assistant */}
       <motion.div
-        className="absolute top-0 left-0 right-0 z-20 bg-gray-900/90 backdrop-blur-sm"
-        initial={{ y: -100, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
+        className={`${chatOpen ? 'w-96' : 'w-16'} flex-shrink-0 transition-all duration-300 ease-out bg-gray-900 border-r border-gray-700 flex flex-col z-30`}
+        initial={{ x: -400, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
         transition={{ duration: 0.6 }}
       >
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={handleGoBack}
-              className="flex items-center gap-2 text-white hover:text-ocean-400 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              Back to Home
-            </button>
-
-            <div className="flex items-center gap-3">
-              <Image
-                src="/tender-tales-logo.png"
-                alt="Tender Tales Logo"
-                width={24}
-                height={24}
-              />
-              <h1 className="text-xl font-bold text-white">
-                Kadal
-              </h1>
-            </div>
-
-            <div className="w-32" />
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Map Container */}
-      <div className="relative w-full h-screen">
-        <Map
-          ref={mapRef}
-          initialViewState={INITIAL_VIEW_STATE}
-          onMove={handleViewStateChange}
-          style={{ width: '100%', height: '100%' }}
-          mapStyle="mapbox://styles/mapbox/satellite-streets-v12"
-          mapboxAccessToken={MAPBOX_TOKEN}
-          reuseMaps
-        >
-          <NavigationControl position="top-right" style={{ top: '80px' }} />
-
-          {/* Satellite imagery overlay */}
-          {visualizationData && visualizationData.type === 'sentinel2' && (
-            <Source
-              id="sentinel-overlay"
-              type="raster"
-              tiles={[visualizationData.url]}
-              tileSize={512}
-            >
-              <Layer
-                id="sentinel-layer"
-                type="raster"
-                paint={{
-                  'raster-opacity': 0.8,
-                  'raster-fade-duration': 300
-                }}
-              />
-            </Source>
-          )}
-        </Map>
-      </div>
-
-      {/* Sidebar Toggle Button - Only show when sidebar is closed */}
-      <AnimatePresence>
-        {!sidebarOpen && (
-          <motion.button
-            onClick={() => setSidebarOpen(true)}
-            className="absolute top-20 left-6 bg-gray-800/90 backdrop-blur-sm hover:bg-gray-700 text-white rounded-lg p-3 shadow-lg transition-colors z-30 border border-gray-600"
-            initial={{ x: -100, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: -100, opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            aria-label="Open sidebar"
-          >
-            <Menu className="w-5 h-5" />
-          </motion.button>
-        )}
-      </AnimatePresence>
-
-      {/* Sidebar */}
-      <AnimatePresence>
-        {sidebarOpen && (
-          <motion.div
-            className="absolute top-0 left-0 h-full w-80 bg-gray-900/95 backdrop-blur-sm shadow-2xl border-r border-gray-700 z-40"
-            initial={{ x: -320, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: -320, opacity: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-          >
-            {/* Sidebar Header */}
-            <div className="p-6 border-b border-gray-700">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Image
-                    src="/tender-tales-logo.png"
-                    alt="Tender Tales Logo"
-                    width={32}
-                    height={32}
-                  />
-                  <h2 className="text-xl font-bold text-white">Kadal</h2>
+        {/* Left Panel Header */}
+        <div className={`${chatOpen ? 'h-16' : 'h-12'} bg-gray-800/50 border-b border-gray-700 flex items-center px-3 flex-shrink-0 transition-all duration-300`}>
+          {chatOpen ? (
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-3">
+                <Image
+                  src="/tender-tales-logo.png"
+                  alt="Tender Tales Logo"
+                  width={20}
+                  height={20}
+                />
+                <div>
+                  <h1 className="text-sm font-bold text-white">Kadal</h1>
+                  <p className="text-xs text-gray-400">AI Assistant</p>
                 </div>
-                <button
-                  onClick={() => setSidebarOpen(false)}
-                  className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-gray-800 rounded-lg"
-                  aria-label="Close sidebar"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            {/* User Section */}
-            <div className="p-6 border-b border-gray-700">
-              {isAuthenticated ? (
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    {session?.user?.image ? (
-                      <Image
-                        src={session.user.image}
-                        alt={session.user.name || 'User'}
-                        width={36}
-                        height={36}
-                        className="rounded-full ring-1 ring-ocean-400/20"
-                      />
-                    ) : (
-                      <div className="w-9 h-9 bg-gradient-to-br from-ocean-500 via-ocean-600 to-ocean-700 rounded-full flex items-center justify-center shadow-md ring-1 ring-ocean-400/20">
-                        <User className="w-4 h-4 text-white" />
-                      </div>
-                    )}
-                    <div className="absolute -bottom-0 -right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-900 shadow-sm"></div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white font-medium truncate">{session?.user?.name || 'User'}</p>
-                    <p className="text-gray-400 text-sm truncate">{session?.user?.email}</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-4">
-                  <div className="w-9 h-9 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <User className="w-4 h-4 text-gray-400" />
-                  </div>
-                  <p className="text-gray-400 text-sm mb-3">Sign in to unlock all features</p>
-                  <button
-                    onClick={() => setShowSignInModal(true)}
-                    className="text-xs bg-ocean-600 hover:bg-ocean-700 text-white px-3 py-1 rounded-full transition-colors"
-                  >
-                    Sign In
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Navigation */}
-            <div className="p-4">
-              <nav className="space-y-2">
-                <button
-                  onClick={() => {
-                    if (!isAuthenticated) {
-                      setShowSignInModal(true)
-                      return
-                    }
-                    setChatOpen(!chatOpen)
-                  }}
-                  className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors ${
-                    chatOpen && isAuthenticated
-                      ? 'bg-ocean-600 text-white'
-                      : isAuthenticated
-                      ? 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                      : 'text-gray-500 hover:bg-gray-800/50'
-                  }`}
-                >
-                  <Waves className="w-5 h-5" />
-                  <span className="font-medium">Kadal Assistant</span>
-                  {!isAuthenticated && (
-                    <span className="ml-auto text-xs bg-ocean-600 text-white px-2 py-1 rounded-full">
-                      Sign In
-                    </span>
-                  )}
-                </button>
-
-                {isAuthenticated && (
-                  <>
-                    <button
-                      onClick={() => router.push('/account')}
-                      className="w-full flex items-center gap-3 p-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
-                    >
-                      <Settings className="w-5 h-5" />
-                      <span className="font-medium">Account Settings</span>
-                    </button>
-
-                    <button
-                      onClick={() => signOut({ callbackUrl: '/' })}
-                      className="w-full flex items-center gap-3 p-3 rounded-lg text-gray-300 hover:bg-red-900/50 hover:text-red-300 transition-colors"
-                    >
-                      <LogOut className="w-5 h-5" />
-                      <span className="font-medium">Sign Out</span>
-                    </button>
-                  </>
-                )}
-              </nav>
-            </div>
-
-            {/* Version Info */}
-            <div className="absolute bottom-6 left-6 right-6">
-              <div className="text-center text-xs text-gray-500">
-                <p>Kadal v1.0.0</p>
-                <p className="mt-1">Powered by Earth Engine</p>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Chat Assistant - Bottom positioned */}
-      <AnimatePresence>
-        {chatOpen && (
-          <motion.div
-            className="fixed bottom-6 right-6 w-96 max-w-[calc(100vw-3rem)] bg-gray-800/95 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-700 z-50"
-            initial={{ opacity: 0, y: 100, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 100, scale: 0.95 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-          >
-            {/* Chat Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-700">
-              <div className="flex items-center gap-2">
-                <Waves className="w-5 h-5 text-ocean-400" />
-                <h3 className="text-white font-semibold">Kadal Assistant</h3>
               </div>
               <button
                 onClick={() => setChatOpen(false)}
-                className="text-gray-400 hover:text-white transition-colors"
+                className="text-gray-400 hover:text-white transition-colors p-1.5 hover:bg-gray-700 rounded"
+                title="Collapse Panel"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
+          ) : (
+            <div className="flex flex-col w-full h-full px-2">
+              {/* Top - Kadal Icon */}
+              <div className="flex justify-center pt-2">
+                <button
+                  onClick={() => setChatOpen(true)}
+                  className="w-10 h-10 flex items-center justify-center hover:bg-gray-800 transition-colors rounded"
+                  title="Open Kadal Assistant"
+                >
+                  <Waves className="w-5 h-5 text-ocean-400" />
+                </button>
+              </div>
+
+              {/* Middle spacer */}
+              <div className="flex-1"></div>
+
+              {/* Bottom - User Section */}
+              <div className="flex flex-col items-center pb-3 gap-2">
+                {isAuthenticated ? (
+                  <>
+                    <button
+                      onClick={() => router.push('/account')}
+                      className="relative w-10 h-10 flex items-center justify-center hover:bg-gray-700 rounded-full transition-colors"
+                      title="Account Settings"
+                    >
+                      {session?.user?.image ? (
+                        <Image
+                          src={session.user.image}
+                          alt={session.user.name || 'User'}
+                          width={28}
+                          height={28}
+                          className="rounded-full ring-1 ring-ocean-400/20"
+                        />
+                      ) : (
+                        <div className="w-7 h-7 bg-gradient-to-br from-ocean-500 to-ocean-700 rounded-full flex items-center justify-center">
+                          <User className="w-4 h-4 text-white" />
+                        </div>
+                      )}
+                      <div className="absolute -bottom-0 -right-0 w-2 h-2 bg-green-500 rounded-full border border-gray-900"></div>
+                    </button>
+                    <button
+                      onClick={() => signOut({ callbackUrl: '/' })}
+                      className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-red-400 transition-colors hover:bg-red-900/20 rounded"
+                      title="Sign Out"
+                    >
+                      <LogOut className="w-4 h-4" />
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => setShowSignInModal(true)}
+                    className="w-10 h-10 bg-gray-700 hover:bg-gray-600 rounded-full flex items-center justify-center transition-colors"
+                    title="Sign In"
+                  >
+                    <User className="w-4 h-4 text-gray-400" />
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Chat Content - Only show when open */}
+        {chatOpen && (
+          <>
+            {/* Current View Info */}
+            <div className="px-3 py-2 bg-gray-800/30 border-b border-gray-700">
+              <div className="flex items-center gap-2 mb-1">
+                <MapPin className="w-3 h-3 text-ocean-400" />
+                <span className="text-xs font-medium text-gray-300">Current View</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-xs font-mono text-gray-400">
+                <div>Lat: {viewState.latitude.toFixed(4)}°</div>
+                <div>Lon: {viewState.longitude.toFixed(4)}°</div>
+                <div>Zoom: {viewState.zoom.toFixed(1)}x</div>
+              </div>
+            </div>
+
 
             {/* Chat Messages */}
-            <div className="h-80 max-h-[60vh] overflow-y-auto p-4 space-y-3">
+            <div className="flex-1 overflow-y-auto p-3 space-y-3">
               {chatMessages.length === 0 ? (
                 <div className="text-gray-400 text-sm">
-                  <p className="mb-2 font-medium text-gray-300">Try these example queries:</p>
-                  <div className="space-y-1">
+                  <p className="mb-3 font-medium text-gray-300">Try these examples:</p>
+                  <div className="space-y-2">
                     {exampleQueries.map((example, i) => (
                       <button
                         key={i}
                         onClick={() => setChatInput(example)}
-                        className="block w-full text-left px-3 py-2 hover:bg-gray-700/50 rounded-md transition-colors text-ocean-300 border border-gray-700/30 hover:border-ocean-500/40 text-xs"
+                        className="block w-full text-left px-3 py-2 hover:bg-gray-800 rounded-md transition-colors text-ocean-300 border border-gray-700/50 hover:border-ocean-500/40 text-xs"
                       >
                         {example}
                       </button>
@@ -520,27 +362,19 @@ function MapPageContent() {
                       key={message.id}
                       className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}
                     >
-                      <div className={`flex gap-2 max-w-[85%] ${message.isUser ? 'flex-row-reverse' : 'flex-row'}`}>
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                          message.isUser
-                            ? 'bg-ocean-600 text-white'
-                            : 'bg-gray-700 text-ocean-400'
-                        }`}>
+                      <div className={`flex gap-2 max-w-[90%] ${message.isUser ? 'flex-row-reverse' : 'flex-row'}`}>
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${message.isUser ? 'bg-ocean-600 text-white' : 'bg-gray-700 text-ocean-400'}`}>
                           {message.isUser ? (
-                            <User className="w-4 h-4" />
+                            <User className="w-3 h-3" />
                           ) : (
-                            <Waves className="w-4 h-4" />
+                            <Waves className="w-3 h-3" />
                           )}
                         </div>
                         <div
-                          className={`p-3 rounded-xl ${
-                            message.isUser
-                              ? 'bg-ocean-600 text-white rounded-br-md'
-                              : 'bg-gray-700 text-gray-100 rounded-bl-md'
-                          }`}
+                          className={`p-2 rounded-lg text-xs ${message.isUser ? 'bg-ocean-600 text-white rounded-br-sm' : 'bg-gray-700 text-gray-100 rounded-bl-sm'}`}
                         >
-                          <p className="text-sm leading-relaxed">{message.text}</p>
-                          <p className="text-xs opacity-60 mt-2">
+                          <p className="leading-relaxed">{message.text}</p>
+                          <p className="text-xs opacity-60 mt-1">
                             {message.timestamp.toLocaleTimeString([], {
                               hour: '2-digit',
                               minute: '2-digit'
@@ -553,14 +387,14 @@ function MapPageContent() {
 
                   {isLoading && (
                     <div className="flex justify-start">
-                      <div className="flex gap-2 max-w-[85%]">
-                        <div className="w-8 h-8 bg-gray-700 text-ocean-400 rounded-full flex items-center justify-center flex-shrink-0">
-                          <Waves className="w-4 h-4" />
+                      <div className="flex gap-2">
+                        <div className="w-6 h-6 bg-gray-700 text-ocean-400 rounded-full flex items-center justify-center flex-shrink-0">
+                          <Waves className="w-3 h-3" />
                         </div>
-                        <div className="bg-gray-700 text-gray-100 p-3 rounded-xl rounded-bl-md">
+                        <div className="bg-gray-700 text-gray-100 p-2 rounded-lg rounded-bl-sm">
                           <div className="flex items-center gap-2">
-                            <Loader className="w-4 h-4 animate-spin text-ocean-400" />
-                            <span className="text-sm">Analyzing your query...</span>
+                            <Loader className="w-3 h-3 animate-spin text-ocean-400" />
+                            <span className="text-xs">Analyzing...</span>
                           </div>
                         </div>
                       </div>
@@ -571,105 +405,107 @@ function MapPageContent() {
             </div>
 
             {/* Chat Input */}
-            <form onSubmit={handleChatSubmit} className="p-4 border-t border-gray-700">
-              <div className="flex gap-3 items-end">
-                <div className="flex-1 relative">
-                  <input
-                    type="text"
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    placeholder="Try: 'Go to Toronto' or 'Show satellite data for this area'..."
-                    className="w-full bg-gray-700 text-white rounded-2xl px-4 py-3 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500 focus:bg-gray-600 transition-colors placeholder-gray-400 resize-none"
-                    disabled={isLoading}
-                    maxLength={500}
-                  />
-                  <div className="absolute right-3 bottom-3 text-xs text-gray-500">
-                    {chatInput.length}/500
-                  </div>
-                </div>
+            <form onSubmit={handleChatSubmit} className="p-3 border-t border-gray-700 bg-gray-800/30">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  placeholder="Ask Kadal..."
+                  className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ocean-500 placeholder-gray-400"
+                  disabled={isLoading}
+                  maxLength={500}
+                />
                 <button
                   type="submit"
                   disabled={!chatInput.trim() || isLoading}
-                  className="bg-ocean-600 hover:bg-ocean-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-2xl p-3 transition-all duration-200 shadow-lg hover:shadow-xl disabled:shadow-none"
+                  className="bg-ocean-600 hover:bg-ocean-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg p-2 transition-colors"
                 >
                   {isLoading ? (
-                    <Loader className="w-5 h-5 animate-spin" />
+                    <Loader className="w-4 h-4 animate-spin" />
                   ) : (
-                    <Send className="w-5 h-5" />
+                    <Send className="w-4 h-4" />
                   )}
                 </button>
               </div>
-              <div className="mt-2 text-xs text-gray-500 text-center">
-                Press Enter to send
+              <div className="text-xs text-gray-500 mt-1">
+                {chatInput.length}/500
               </div>
             </form>
-          </motion.div>
+
+            {/* User Section - Bottom */}
+            <div className="px-3 py-3 border-t border-gray-700 bg-gray-800/50">
+              {isAuthenticated ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      {session?.user?.image ? (
+                        <Image
+                          src={session.user.image}
+                          alt={session.user.name || 'User'}
+                          width={28}
+                          height={28}
+                          className="rounded-full ring-1 ring-ocean-400/20"
+                        />
+                      ) : (
+                        <div className="w-7 h-7 bg-gradient-to-br from-ocean-500 to-ocean-700 rounded-full flex items-center justify-center">
+                          <User className="w-3 h-3 text-white" />
+                        </div>
+                      )}
+                      <div className="absolute -bottom-0 -right-0 w-2 h-2 bg-green-500 rounded-full border border-gray-900"></div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-sm font-medium truncate">{session?.user?.name || 'User'}</p>
+                      <p className="text-gray-400 text-xs truncate">{session?.user?.email}</p>
+                    </div>
+                    <button
+                      onClick={() => signOut({ callbackUrl: '/' })}
+                      className="text-gray-400 hover:text-red-400 transition-colors p-1.5 hover:bg-red-900/20 rounded"
+                      title="Sign Out"
+                    >
+                      <LogOut className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 bg-gray-700 rounded-full flex items-center justify-center">
+                      <User className="w-3 h-3 text-gray-400" />
+                    </div>
+                    <div>
+                      <p className="text-gray-400 text-xs">Not signed in</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowSignInModal(true)}
+                    className="text-xs bg-ocean-600 hover:bg-ocean-700 text-white px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    Sign In
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
         )}
-      </AnimatePresence>
-
-      {/* Floating Chat Button - Only show when sidebar is closed */}
-      <AnimatePresence>
-        {!sidebarOpen && !chatOpen && (
-          <motion.button
-            onClick={() => setChatOpen(true)}
-            className="fixed bottom-6 right-6 w-14 h-14 bg-ocean-600 hover:bg-ocean-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 z-40 flex items-center justify-center group"
-            initial={{ opacity: 0, scale: 0.8, y: 100 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: 100 }}
-            transition={{ duration: 0.3, delay: 0.2 }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Waves className="w-6 h-6 group-hover:animate-pulse" />
-            <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white animate-pulse"></div>
-          </motion.button>
-        )}
-      </AnimatePresence>
-
-      {/* Visualization Info Panel */}
-      {visualizationData && visualizationData.type === 'sentinel2' && (
-        <motion.div
-          className="absolute top-20 right-6 bg-gray-800/95 backdrop-blur-sm text-white rounded-xl p-4 shadow-lg border border-gray-700 max-w-sm"
-          initial={{ x: 100, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          exit={{ x: 100, opacity: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-            <span className="text-sm font-semibold">Sentinel-2 Imagery</span>
-          </div>
-          <div className="text-xs text-gray-300 space-y-1">
-            <div>Period: {visualizationData.metadata?.dateRange}</div>
-            <div>Images: {visualizationData.metadata?.imageCount}</div>
-            <div>Max Cloud: {visualizationData.metadata?.cloudCover}%</div>
-          </div>
-          <button
-            onClick={() => setVisualizationData(null)}
-            className="mt-2 text-xs text-ocean-400 hover:text-ocean-300"
-          >
-            Hide overlay
-          </button>
-        </motion.div>
-      )}
-
-      {/* Coordinates Display */}
-      <motion.div
-        className={`absolute bottom-6 ${chatOpen || !sidebarOpen ? 'left-6' : 'right-6'} bg-gray-800/95 backdrop-blur-sm text-white rounded-xl p-3 shadow-lg border border-gray-700 font-mono text-sm transition-all duration-300`}
-        initial={{ y: 100, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6, delay: 1 }}
-      >
-        <div className="flex items-center gap-2 mb-1">
-          <MapPin className="w-4 h-4 text-ocean-400" />
-          <span className="text-xs font-semibold">Current View</span>
-        </div>
-        <div className="text-xs text-gray-300">
-          Lat: {viewState.latitude.toFixed(4)}°<br />
-          Lon: {viewState.longitude.toFixed(4)}°<br />
-          Zoom: {viewState.zoom.toFixed(1)}x
-        </div>
       </motion.div>
+
+      {/* Right Panel - Map */}
+      <div className="flex-1 min-w-0 relative transition-all duration-300 ease-out">
+
+        {/* Map Container */}
+        <Map
+          ref={mapRef}
+          initialViewState={INITIAL_VIEW_STATE}
+          onMove={handleViewStateChange}
+          style={{ width: '100%', height: '100%' }}
+          mapStyle="mapbox://styles/mapbox/satellite-streets-v12"
+          mapboxAccessToken={MAPBOX_TOKEN}
+          reuseMaps
+        >
+          <NavigationControl position="top-right" />
+        </Map>
+      </div>
 
       {/* Sign In Modal */}
       <SignInModal

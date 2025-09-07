@@ -48,6 +48,7 @@ services:
       - RELOAD=true
     volumes:
       - ./tender_tales:/app
+      - /app/.venv  # Exclude .venv from volume mount to preserve container's virtual environment
       - ${HOME}/.config/earthengine/credentials:/app/credentials.json:ro
     networks:
       - app-network
@@ -76,6 +77,7 @@ services:
       - DEBUG=${DEBUG}
     volumes:
       - ./tender_tales:/app
+      - /app/.venv  # Exclude .venv from volume mount to preserve container's virtual environment
       - ${HOME}/.config/earthengine/credentials:/app/credentials.json:ro
     networks:
       - app-network

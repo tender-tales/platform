@@ -1,0 +1,33 @@
+# Ignore local virtual environment
+.venv/
+.venv
+
+# Ignore common development files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.coverage
+.pytest_cache/
+.mypy_cache/
+.DS_Store
+.env
+.env.local
+.env.development
+.env.production
+
+# Ignore IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ignore logs
+*.log
+logs/
+
+# Ignore temporary files
+*.tmp
+*.temp
