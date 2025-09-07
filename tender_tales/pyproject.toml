@@ -90,6 +90,10 @@ disable_error_code = ["attr-defined"]
 module = "tender_tales.mcp_server.*"
 disable_error_code = ["attr-defined"]
 
+[[tool.mypy.overrides]]
+module = "tender_tales.services.sentinel_imagery"
+disable_error_code = ["attr-defined", "no-untyped-call", "name-defined"]
+
 # Disable strict type checking for Google Auth and other untyped libraries
 [[tool.mypy.overrides]]
 module = ["google.auth.*", "google.oauth2.*", "langchain.*"]

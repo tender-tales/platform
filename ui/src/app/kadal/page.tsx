@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
-import Map, { NavigationControl } from 'react-map-gl/mapbox'
+import Map, { NavigationControl, Source, Layer } from 'react-map-gl/mapbox'
 import type { MapRef } from 'react-map-gl/mapbox'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, MapPin, Send, Waves, Loader, User, Menu, X, LogOut, Settings } from 'lucide-react'
+import { ArrowLeft, MapPin, Send, Waves, Loader, User, Menu, X, LogOut, Settings, Layers, Eye, EyeOff, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
 import Image from 'next/image'
@@ -33,6 +33,20 @@ interface ChatMessage {
   data?: any;
 }
 
+interface SatelliteLayer {
+  id: string;
+  tile_url: string;
+  visualization_type: string;
+  date_range: any;
+  bounds: {
+    north: number;
+    south: number;
+    east: number;
+    west: number;
+  };
+  opacity: number;
+}
+
 function MapPageContent() {
   const router = useRouter()
   const { data: session, status } = useSession()
@@ -43,6 +57,8 @@ function MapPageContent() {
   const [chatInput, setChatInput] = useState('')
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [isLoadingSatellite, setIsLoadingSatellite] = useState(false)
+  const [satelliteLayers, setSatelliteLayers] = useState<SatelliteLayer[]>([])
   const isAuthenticated = status === 'authenticated'
 
   const handleViewStateChange = useCallback((evt: any) => {
@@ -128,25 +144,91 @@ function MapPageContent() {
       console.log('All results:', response.data) // Debug log
 
       if (response.data && response.data.length > 0) {
-        // Look for geocoding result in all results (not just first)
-        const geocodeResult = response.data.find((result: any) => result.tool === 'geocode_location')
-        if (geocodeResult && geocodeResult.result?.found) {
-          const coords = geocodeResult.result.coordinates
-          console.log('Navigation coords found:', coords) // Debug log
-          console.log('About to navigate to:', coords.longitude, coords.latitude, coords.zoom) // Debug log
-          // Update the map viewport to the new location
-          const newViewState = {
-            longitude: coords.longitude,
-            latitude: coords.latitude,
-            zoom: coords.zoom
+        // Check for direct satellite imagery result (viewport-based queries)
+        const directSatelliteResult = response.data.find((result: any) => result.tool === 'get_satellite_imagery')
+        if (directSatelliteResult?.result?.success) {
+          console.log('Direct satellite imagery result found:', directSatelliteResult.result)
+
+          const newLayer: SatelliteLayer = {
+            id: `satellite-${Date.now()}`,
+            tile_url: directSatelliteResult.result.tile_url,
+            visualization_type: directSatelliteResult.result.visualization_type,
+            date_range: directSatelliteResult.result.date_range,
+            bounds: directSatelliteResult.result.bounds,
+            opacity: 0.8
           }
-          setViewState(newViewState)
-          if (mapRef.current) {
-            mapRef.current.flyTo({
-              center: [coords.longitude, coords.latitude],
-              zoom: coords.zoom,
-              duration: 2000
-            })
+
+          console.log('Creating direct satellite layer:', newLayer)
+          setSatelliteLayers([newLayer])
+        } else {
+          // Look for geocoding result for navigation-based queries
+          const geocodeResult = response.data.find((result: any) => result.tool === 'geocode_location')
+          if (geocodeResult && geocodeResult.result?.found) {
+            const coords = geocodeResult.result.coordinates
+            console.log('Navigation coords found:', coords) // Debug log
+            console.log('About to navigate to:', coords.longitude, coords.latitude, coords.zoom) // Debug log
+            // Update the map viewport to the new location
+            const newViewState = {
+              longitude: coords.longitude,
+              latitude: coords.latitude,
+              zoom: coords.zoom
+            }
+            console.log('Setting new viewState:', newViewState) // Debug log
+            setViewState(newViewState)
+
+            // Also update using imperative API as fallback
+            if (mapRef.current) {
+              console.log('Also calling flyTo as fallback') // Debug log
+              mapRef.current.flyTo({
+                center: [coords.longitude, coords.latitude],
+                zoom: coords.zoom,
+                duration: 2000
+              })
+
+              // After navigation completes, fetch satellite imagery if required
+              if (response.satelliteImagery?.enabled) {
+                console.log('Satellite imagery required - waiting for navigation to complete')
+
+                // Wait for flyTo to complete, then fetch satellite imagery for the viewport
+                mapRef.current.once('moveend', async () => {
+                  try {
+                    setIsLoadingSatellite(true)
+                    console.log('Navigation completed, fetching satellite imagery...')
+
+                    const imagery = await fetchViewportSatelliteImagery(response.satelliteImagery.visualization)
+
+                    if (imagery?.success) {
+                      const newLayer: SatelliteLayer = {
+                        id: `satellite-${Date.now()}`,
+                        tile_url: imagery.tile_url,
+                        visualization_type: imagery.visualization_type,
+                        date_range: imagery.date_range,
+                        bounds: imagery.bounds,
+                        opacity: 0.8
+                      }
+
+                      console.log('Creating viewport satellite layer:', newLayer)
+                      setSatelliteLayers([newLayer])
+                    }
+                  } catch (error) {
+                    console.error('Failed to fetch viewport satellite imagery:', error)
+
+                    // Add error message to chat
+                    const errorMessage: ChatMessage = {
+                      id: `satellite-error-${Date.now()}`,
+                      text: `Failed to load satellite imagery: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                      isUser: false,
+                      timestamp: new Date()
+                    }
+                    setChatMessages(prev => [...prev, errorMessage])
+                  } finally {
+                    setIsLoadingSatellite(false)
+                  }
+                })
+              } else {
+                console.log('No satellite imagery required for this query')
+              }
+            }
           }
         }
 
@@ -166,6 +248,12 @@ function MapPageContent() {
   }
 
   const processMCPQuery = async (query: string, currentView: ViewState) => {
+    // Build proper conversation history with alternating user/assistant messages
+    const conversationHistory = chatMessages.slice(-10).map(msg => ({
+      role: msg.isUser ? 'user' : 'assistant',
+      content: msg.text
+    }))
+
     // Call the backend MCP endpoint
     const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/mcp/query`, {
       method: 'POST',
@@ -175,14 +263,12 @@ function MapPageContent() {
       body: JSON.stringify({
         query: query,
         region: {
-          type: 'rectangle',
-          coordinates: [
-            currentView.longitude - 0.1,
-            currentView.latitude - 0.1,
-            currentView.longitude + 0.1,
-            currentView.latitude + 0.1
-          ]
-        }
+          north: currentView.latitude + 0.1,
+          south: currentView.latitude - 0.1,
+          east: currentView.longitude + 0.1,
+          west: currentView.longitude - 0.1
+        },
+        conversation_history: conversationHistory
       })
     })
 
@@ -196,16 +282,66 @@ function MapPageContent() {
 
     return {
       message: data.response,
-      data: data.data
+      data: data.data,
+      satelliteImagery: data.satellite_imagery
+    }
+  }
+
+  const fetchViewportSatelliteImagery = async (visualization: string): Promise<any> => {
+    if (!mapRef.current) {
+      throw new Error('Map reference not available')
+    }
+
+    try {
+      // Get current viewport bounds
+      const bounds = mapRef.current.getBounds()
+      const viewportBounds = {
+        north: bounds.getNorth(),
+        south: bounds.getSouth(),
+        east: bounds.getEast(),
+        west: bounds.getWest()
+      }
+
+      console.log('Fetching satellite imagery for viewport:', viewportBounds)
+      console.log('Visualization type:', visualization)
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/satellite/viewport`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          visualization: visualization,
+          viewport_bounds: viewportBounds,
+          cloud_coverage_max: 20.0
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        throw new Error(`Failed to fetch satellite imagery: ${response.statusText}. ${errorData.detail || ''}`)
+      }
+
+      const data = await response.json()
+      console.log('Satellite imagery response:', data)
+      return data
+
+    } catch (error) {
+      console.error('Error in fetchViewportSatelliteImagery:', error)
+      throw error
     }
   }
 
   const exampleQueries = [
-    "Go to Toronto",
-    "Navigate to Paris",
-    "Show me New York City",
-    "Go to Amazon rainforest",
-    "Take me to Tokyo"
+    "Show me NDVI for Central Park",
+    "Display the Amazon rainforest in false color",
+    "What does this area look like in false color?",
+    "Show me NDVI of the current area",
+    "Apply false color here",
+    "What does Tokyo look like from space?",
+    "Show satellite imagery for this region",
+    "Take me to Mount Everest",
+    "Navigate to Paris"
   ]
 
   if (!MAPBOX_TOKEN) {
@@ -493,6 +629,73 @@ function MapPageContent() {
       {/* Right Panel - Map */}
       <div className="flex-1 min-w-0 relative transition-all duration-300 ease-out">
 
+        {/* Satellite Layers Control Panel */}
+        {(satelliteLayers.length > 0 || isLoadingSatellite) && (
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="absolute top-4 left-4 z-10 bg-gray-800/90 backdrop-blur-sm rounded-lg border border-gray-700 p-3 max-w-sm"
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <Layers className="w-4 h-4 text-ocean-400" />
+              <h3 className="text-sm font-medium text-white">Satellite Layers</h3>
+              {isLoadingSatellite && (
+                <Loader className="w-3 h-3 animate-spin text-ocean-400" />
+              )}
+            </div>
+
+            {isLoadingSatellite && satelliteLayers.length === 0 && (
+              <div className="py-2 text-xs text-gray-400">
+                Loading satellite imagery for viewport...
+              </div>
+            )}
+
+            {satelliteLayers.map((layer) => (
+              <div key={layer.id} className="flex items-center justify-between py-2 border-t border-gray-700 first:border-t-0">
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-medium text-white">
+                    {layer.visualization_type.replace('_', ' ').replace(/\bndvi\b/i, 'NDVI')}
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    {layer.date_range.acquisition}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={layer.opacity * 100}
+                    onChange={(e) => {
+                      const newOpacity = parseInt(e.target.value) / 100
+                      setSatelliteLayers(layers =>
+                        layers.map(l =>
+                          l.id === layer.id
+                            ? { ...l, opacity: newOpacity }
+                            : l
+                        )
+                      )
+                    }}
+                    className="w-12 h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                    style={{
+                      background: `linear-gradient(to right, #0EA5E9 0%, #0EA5E9 ${layer.opacity * 100}%, #374151 ${layer.opacity * 100}%, #374151 100%)`
+                    }}
+                  />
+                  <button
+                    onClick={() => {
+                      setSatelliteLayers(layers => layers.filter(l => l.id !== layer.id))
+                    }}
+                    className="text-gray-400 hover:text-red-400 transition-colors p-1 hover:bg-red-900/20 rounded"
+                    title="Remove layer"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </motion.div>
+        )}
+
         {/* Map Container */}
         <Map
           ref={mapRef}
@@ -504,6 +707,30 @@ function MapPageContent() {
           reuseMaps
         >
           <NavigationControl position="top-right" />
+
+          {/* Satellite Imagery Layers */}
+          {satelliteLayers.map((layer) => (
+            <Source
+              key={layer.id}
+              id={layer.id}
+              type="raster"
+              tiles={[layer.tile_url]}
+              tileSize={256}
+              minzoom={0}
+              maxzoom={18}
+            >
+              <Layer
+                id={`${layer.id}-layer`}
+                type="raster"
+                source={layer.id}
+                paint={{
+                  'raster-opacity': layer.opacity,
+                  'raster-fade-duration': 300
+                }}
+                beforeId="waterway-label"
+              />
+            </Source>
+          ))}
         </Map>
       </div>
 

@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from services.llm_service import LLMQueryProcessor
+from services.sentinel_imagery import ImageryRequest, sentinel_imagery_service
 from shared.logging_config import setup_module_logger
 
 
@@ -22,6 +23,17 @@ class MCPQueryRequest(BaseModel):
 
     query: str
     region: dict[str, Any]
+    conversation_history: list[dict[str, str]] | None = None
+
+
+class SatelliteImageryRequest(BaseModel):
+    """Request model for viewport-aware satellite imagery."""
+
+    visualization: str = "rgb"
+    viewport_bounds: dict[str, float]
+    start_date: str | None = None
+    end_date: str | None = None
+    cloud_coverage_max: float = 20.0
 
 
 @router.post("/mcp/query")
@@ -31,7 +43,9 @@ async def process_mcp_query(request: MCPQueryRequest) -> dict[str, Any]:
 
     try:
         # Use LLM to analyze the query and determine appropriate actions
-        analysis = await llm_processor.analyze_query(request.query, request.region)
+        analysis = await llm_processor.analyze_query(
+            request.query, request.region, request.conversation_history
+        )
 
         if not analysis.in_scope:
             logger.info(f"Query out of scope: {analysis.reasoning}")
@@ -42,15 +56,25 @@ async def process_mcp_query(request: MCPQueryRequest) -> dict[str, Any]:
                 "data": None,
             }
 
-        # Execute the tool calls determined by the LLM
+        # Execute the tool calls determined by the LLM (in sequence for dependencies)
         results = []
+        context: dict[str, Any] = {}  # Store results for sequential tool calls
+
         for tool_call in analysis.tool_calls:
             logger.info(f"Executing {tool_call.tool_name}: {tool_call.reasoning}")
 
             try:
-                result = await call_mcp_server(
-                    tool_call.tool_name, tool_call.parameters
+                # Process parameters with context from previous tools
+                processed_params = await _process_tool_parameters(
+                    tool_call.parameters, context, request.region
                 )
+
+                result = await call_mcp_server(tool_call.tool_name, processed_params)
+
+                # Store successful results in context for next tools
+                if tool_call.tool_name == "geocode_location" and result.get("found"):
+                    context["geocoded_location"] = result
+
                 results.append(
                     {
                         "tool": tool_call.tool_name,
@@ -58,7 +82,8 @@ async def process_mcp_query(request: MCPQueryRequest) -> dict[str, Any]:
                         "reasoning": tool_call.reasoning,
                     }
                 )
-                logger.info(f"Tool {tool_call.tool_name} result: {result}")  # Debug log
+                logger.info(f"Tool {tool_call.tool_name} completed successfully")
+
             except Exception as e:
                 logger.error(f"Tool {tool_call.tool_name} failed: {e}")
                 results.append(
@@ -81,6 +106,10 @@ async def process_mcp_query(request: MCPQueryRequest) -> dict[str, Any]:
             "analysis": {
                 "reasoning": analysis.reasoning,
                 "tools_used": [tc.tool_name for tc in analysis.tool_calls],
+            },
+            "satellite_imagery": {
+                "enabled": analysis.requires_satellite_imagery.enabled,
+                "visualization": analysis.requires_satellite_imagery.visualization,
             },
             "original_query": request.query,
         }
@@ -107,6 +136,54 @@ async def process_mcp_query(request: MCPQueryRequest) -> dict[str, Any]:
         logger.error(f"Failed to process MCP query: {e}")
         raise HTTPException(
             status_code=500, detail=f"Failed to process query: {str(e)}"
+        ) from e
+
+
+@router.post("/satellite/viewport")
+async def get_viewport_satellite_imagery(
+    request: SatelliteImageryRequest,
+) -> dict[str, Any]:
+    """Get satellite imagery for a specific viewport area."""
+    try:
+        logger.info(
+            f"Fetching satellite imagery for viewport: {request.viewport_bounds}"
+        )
+
+        # Validate viewport bounds
+        required_keys = ["north", "south", "east", "west"]
+        if not all(key in request.viewport_bounds for key in required_keys):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid viewport_bounds. Required keys: {required_keys}",
+            )
+
+        # Create imagery request
+        imagery_request = ImageryRequest(
+            bounds=request.viewport_bounds,
+            start_date=request.start_date,
+            end_date=request.end_date,
+            cloud_coverage_max=request.cloud_coverage_max,
+            visualization=request.visualization,
+        )
+
+        # Get satellite imagery
+        result = sentinel_imagery_service.get_latest_imagery(imagery_request)
+
+        return {
+            "success": True,
+            "tile_url": result.tile_url,
+            "map_id": result.map_id,
+            "visualization_type": result.visualization_type,
+            "date_range": result.date_range,
+            "cloud_coverage": result.cloud_coverage,
+            "bounds": result.bounds,
+            "metadata": result.metadata,
+        }
+
+    except Exception as e:
+        logger.error(f"Viewport satellite imagery request failed: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get satellite imagery: {str(e)}"
         ) from e
 
 
@@ -147,6 +224,54 @@ async def _format_response(
         return "Earth Engine analysis completed"
 
 
+async def _process_tool_parameters(
+    params: dict[str, Any], context: dict[str, Any], region: dict[str, Any]
+) -> dict[str, Any]:
+    """Process tool parameters, incorporating context from previous tools and region."""
+    processed_params = params.copy()
+
+    # For get_satellite_imagery tool, handle bounds parameter based on context
+    if "bounds" in processed_params and not processed_params.get("bounds"):
+        # If bounds is explicitly set to empty/null, use region bounds for viewport
+        processed_params["bounds"] = region
+        logger.info(f"Using region bounds for viewport satellite imagery: {region}")
+    elif "geocoded_location" in context and (
+        "bounds" not in processed_params or not processed_params.get("bounds")
+    ):
+        geocoded = context["geocoded_location"]
+        coords = geocoded.get("coordinates", {})
+
+        if coords and "latitude" in coords and "longitude" in coords:
+            # Calculate bounds based on geocoded location and zoom level
+            lat = coords["latitude"]
+            lng = coords["longitude"]
+            zoom = coords.get("zoom", 10)
+
+            # Calculate margin for full viewport coverage (much larger area)
+            # Use a more generous margin to cover the full visible area
+            if zoom >= 15:  # City/neighborhood level - show ~2km area
+                margin = 0.01  # ~1.1km radius
+            elif zoom >= 12:  # City level - show ~10km area
+                margin = 0.04  # ~4.4km radius
+            elif zoom >= 9:  # Regional level - show ~50km area
+                margin = 0.2  # ~22km radius
+            else:  # State/country level - show ~200km area
+                margin = 0.8  # ~88km radius
+
+            processed_params["bounds"] = {
+                "north": lat + margin,
+                "south": lat - margin,
+                "east": lng + margin,
+                "west": lng - margin,
+            }
+
+            logger.info(
+                f"Auto-calculated bounds from geocoded location: {processed_params['bounds']}"
+            )
+
+    return processed_params
+
+
 async def call_mcp_server(tool_name: str, params: dict[str, Any]) -> dict[str, Any]:
     """Call the MCP server tool and return the result."""
     try:
@@ -157,6 +282,7 @@ async def call_mcp_server(tool_name: str, params: dict[str, Any]) -> dict[str, A
 
         tool_handlers = {
             "geocode_location": _handle_geocode_location,
+            "get_satellite_imagery": _handle_get_satellite_imagery,
         }
 
         handler = tool_handlers.get(tool_name)
@@ -168,6 +294,47 @@ async def call_mcp_server(tool_name: str, params: dict[str, Any]) -> dict[str, A
     except Exception as e:
         logger.error(f"MCP server simulation error: {e}")
         raise
+
+
+async def _handle_get_satellite_imagery(params: dict[str, Any]) -> dict[str, Any]:
+    """Handle satellite imagery requests."""
+    try:
+        # Extract parameters
+        bounds = params.get("bounds", {})
+        if not bounds or not all(
+            k in bounds for k in ["north", "south", "east", "west"]
+        ):
+            return {
+                "success": False,
+                "error": "Invalid bounds parameters. Required: north, south, east, west. For location-based queries, use geocode_location first.",
+            }
+
+        # Create imagery request
+        imagery_request = ImageryRequest(
+            bounds=bounds,
+            start_date=params.get("start_date"),
+            end_date=params.get("end_date"),
+            cloud_coverage_max=params.get("cloud_coverage_max", 20.0),
+            visualization=params.get("visualization", "rgb"),
+        )
+
+        # Get satellite imagery
+        result = sentinel_imagery_service.get_latest_imagery(imagery_request)
+
+        return {
+            "success": True,
+            "tile_url": result.tile_url,
+            "map_id": result.map_id,
+            "visualization_type": result.visualization_type,
+            "date_range": result.date_range,
+            "cloud_coverage": result.cloud_coverage,
+            "bounds": result.bounds,
+            "metadata": result.metadata,
+        }
+
+    except Exception as e:
+        logger.error(f"Satellite imagery request failed: {e}")
+        return {"success": False, "error": str(e)}
 
 
 async def _handle_geocode_location(params: dict[str, Any]) -> dict[str, Any]:
