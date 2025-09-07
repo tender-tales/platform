@@ -50,8 +50,10 @@ class LLMQueryProcessor:
     async def analyze_query(self, query: str, region: Dict[str, Any]) -> QueryAnalysis:
         """Analyze a user query and determine appropriate Earth Engine operations."""
         if not self.llm:
-            # Fallback for when LLM is not available
-            return self._fallback_analysis(query, region)
+            # Return error when LLM is not available - no manual fallback
+            raise ValueError(
+                "LLM service is not available. Please configure ANTHROPIC_API_KEY."
+            )
 
         logger.info(f"Analyzing query with LLM: {query}")
 
@@ -62,25 +64,23 @@ Your task is to analyze user queries and determine:
 2. Which Earth Engine tools should be used
 3. What parameters to pass to those tools
 
-Available Earth Engine tools:
-- get_dataset_info: Get information about a specific Earth Engine dataset
-- search_datasets: Search for datasets by keywords
-- get_image_statistics: Calculate statistics for an image over a region
-- analyze_land_cover_change: Analyze land cover changes over time
-- visualize_image: Create visualization URLs for images
-- get_sentinel_image: Get Sentinel-2 satellite imagery for a region
+Currently available Earth Engine tools:
 - geocode_location: Convert location names to coordinates for navigation (USE THIS for "Go to [location]" queries)
 
-IN SCOPE queries include:
+CURRENTLY SUPPORTED (IN SCOPE) queries:
+- Location search and navigation requests
+- "Go to [location]" requests - ALWAYS use geocode_location tool for these
+- "Show me [location]" requests
+- "Navigate to [location]" requests
+- "Find [location]" requests
+
+PLANNED BUT NOT YET IMPLEMENTED (OUT OF SCOPE for now):
 - Elevation, terrain, topography analysis
 - Land cover analysis and changes
-- Satellite imagery requests (especially Sentinel-2)
+- Satellite imagery requests
 - Environmental monitoring
 - Dataset searches
 - Geographic statistics
-- Location search and navigation requests
-- "Go to [location]" requests - ALWAYS use geocode_location tool for these
-- "Show satellite data/imagery for this area" requests - use get_sentinel_image for these
 
 CRITICAL LOCATION EXTRACTION RULES:
 - "Go to Toronto" → extract "Toronto" → use geocode_location with {"location_name": "Toronto"}
@@ -94,10 +94,6 @@ LOCATION EXTRACTION PATTERNS:
 - "Show me X" → location_name = "X"
 - "Take me to X" → location_name = "X"
 
-SATELLITE IMAGERY:
-- "Show satellite data" = use get_sentinel_image tool
-- "Show satellite imagery" = use get_sentinel_image tool
-
 PARAMETER VALIDATION:
 - NEVER pass empty strings to location_name
 - ALWAYS extract the actual place name from the query
@@ -105,10 +101,14 @@ PARAMETER VALIDATION:
 
 OUT OF SCOPE queries include:
 - Weather forecasting
-- Real-time data (Earth Engine is historical)
+- Real-time data requests
 - Non-geospatial requests
 - Personal information requests
 - General web searches
+- Elevation/terrain analysis (not yet implemented)
+- Satellite imagery requests (not yet implemented)
+- Land cover analysis (not yet implemented)
+- Environmental monitoring (not yet implemented)
 
 Respond with JSON in this exact format:
 {
@@ -150,127 +150,5 @@ Analyze this query and determine the appropriate Earth Engine operations."""
 
         except Exception as e:
             logger.error(f"LLM analysis failed: {e}")
-            # Fallback to rule-based analysis
-            return self._fallback_analysis(query, region)
-
-    def _fallback_analysis(self, query: str, region: Dict[str, Any]) -> QueryAnalysis:
-        """Fallback analysis when LLM is not available."""
-        query_lower = query.lower()
-
-        # Simple rule-based scope checking
-        earth_engine_keywords = [
-            "elevation",
-            "terrain",
-            "satellite",
-            "land cover",
-            "forest",
-            "vegetation",
-            "ndvi",
-            "temperature",
-            "precipitation",
-            "dataset",
-            "image",
-            "analysis",
-            "statistics",
-            "visualization",
-            "topography",
-            "go to",
-            "show me",
-            "navigate",
-            "location",
-            "sentinel",
-            "imagery",
-        ]
-
-        location_keywords = ["go to", "navigate to", "find", "location"]
-        satellite_keywords = [
-            "satellite",
-            "sentinel",
-            "imagery",
-            "image",
-            "show satellite",
-            "show me satellite",
-            "show me imagery",
-        ]
-
-        in_scope = any(keyword in query_lower for keyword in earth_engine_keywords)
-
-        if not in_scope:
-            return QueryAnalysis(
-                in_scope=False,
-                reasoning="Query does not relate to Earth Engine geospatial analysis capabilities",
-                tool_calls=[],
-                response_template="I can help with Earth Engine analysis like elevation data, land cover, satellite imagery, location search, and environmental monitoring. Please ask about geospatial or environmental data.",
-            )
-
-        # Check for location-based queries
-        if any(keyword in query_lower for keyword in location_keywords):
-            # Extract location name (improved approach)
-            location_name = ""
-
-            # Try patterns like "go to Toronto", "navigate to Paris"
-            if "go to " in query_lower:
-                location_name = query_lower.split("go to ", 1)[1].strip()
-            elif "navigate to " in query_lower:
-                location_name = query_lower.split("navigate to ", 1)[1].strip()
-            else:
-                # Fallback: extract everything after common location words
-                words = query.split()
-                for i, word in enumerate(words):
-                    if word.lower() in ["to", "me"] and i + 1 < len(words):
-                        location_name = " ".join(words[i + 1 :])
-                        break
-
-            if not location_name:
-                location_name = query.strip()  # fallback to entire query
-
-            return QueryAnalysis(
-                in_scope=True,
-                reasoning=f"Location search query for: {location_name}",
-                tool_calls=[
-                    ToolCall(
-                        tool_name="geocode_location",
-                        parameters={"location_name": location_name.strip()},
-                        reasoning="Geocoding location to navigate map viewport",
-                    )
-                ],
-                response_template="Navigating to {location}",
-            )
-
-        # Check for satellite imagery queries
-        if any(keyword in query_lower for keyword in satellite_keywords):
-            return QueryAnalysis(
-                in_scope=True,
-                reasoning="Satellite imagery request for current area",
-                tool_calls=[
-                    ToolCall(
-                        tool_name="get_sentinel_image",
-                        parameters={
-                            "region": region,
-                            "start_date": "2024-01-01",
-                            "end_date": "2024-12-31",
-                            "cloud_cover": 30,
-                        },
-                        reasoning="Fetching Sentinel-2 satellite imagery for the region",
-                    )
-                ],
-                response_template="Showing Sentinel-2 satellite imagery for this area with {image_count} images available",
-            )
-
-        # Default to elevation analysis for other in-scope queries
-        return QueryAnalysis(
-            in_scope=True,
-            reasoning="Query relates to geospatial analysis - using elevation data as example",
-            tool_calls=[
-                ToolCall(
-                    tool_name="get_image_statistics",
-                    parameters={
-                        "dataset_id": "USGS/SRTMGL1_003",
-                        "region": region,
-                        "scale": 1000,
-                    },
-                    reasoning="Elevation analysis provides foundational terrain information",
-                )
-            ],
-            response_template="Elevation analysis: {mean:.1f}m average height in this region",
-        )
+            # Re-raise the exception since we don't have a fallback
+            raise RuntimeError(f"Failed to analyze query with LLM: {str(e)}") from e
