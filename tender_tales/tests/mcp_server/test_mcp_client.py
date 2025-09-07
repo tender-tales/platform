@@ -6,7 +6,8 @@ import traceback
 
 import ee
 import pytest
-import tools
+
+from mcp_server import tools
 
 # Import only the config to avoid running the server
 from mcp_server.config import MCPConfig

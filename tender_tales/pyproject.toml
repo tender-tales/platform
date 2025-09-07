@@ -156,6 +156,9 @@ filterwarnings = [
     "ignore::DeprecationWarning",
     "ignore::UserWarning",
 ]
+markers = [
+    "integration: marks tests as integration tests",
+]
 
 [tool.coverage.run]
 source = ["api"]
