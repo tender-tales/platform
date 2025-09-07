@@ -282,8 +282,8 @@ jobs:
             GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
             GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
             WEB3FORMS_ACCESS_KEY=${{ secrets.WEB3FORMS_ACCESS_KEY }}
-            NEXTAUTH_URL=https://${{ env.SERVICE_FRONTEND }}-${{ steps.get-project-number.outputs.PROJECT_NUMBER }}.${{ env.REGION }}.run.app
-            NEXT_PUBLIC_SITE_URL=https://${{ env.SERVICE_FRONTEND }}-${{ steps.get-project-number.outputs.PROJECT_NUMBER }}.${{ env.REGION }}.run.app
+            NEXTAUTH_URL=https://tendertales.ca
+            NEXT_PUBLIC_SITE_URL=https://tendertales.ca
 
 
       - name: Show deployment URLs
