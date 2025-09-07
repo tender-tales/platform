@@ -54,7 +54,7 @@ jobs:
 
       - name: Install dependencies and check code
         run: |
-          cd tender_tales && uv run pytest --cov=. --cov-report=xml tests
+          cd tender_tales && uv run pytest --cov=. --cov-report=xml tests -m "not integration"
 
       # Uncomment this once this repo is configured on Codecov
       - name: Upload coverage to Codecov

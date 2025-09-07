@@ -295,6 +295,9 @@ function MapPageContent() {
     try {
       // Get current viewport bounds
       const bounds = mapRef.current.getBounds()
+      if (!bounds) {
+        throw new Error('Unable to get map bounds')
+      }
       const viewportBounds = {
         north: bounds.getNorth(),
         south: bounds.getSouth(),
