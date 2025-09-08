@@ -90,7 +90,7 @@ jobs:
             -e GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json \
             -v $PWD/tender_tales/credentials.json:/app/credentials.json:ro \
             tender-tales/platform:mcp-server-${{ env.BUILD_ID }} \
-            sh -c "cd /app && uv run pytest tests/mcp_server/test_mcp_client.py::test_mcp_server -m integration -v"
+            sh -c "cd /app && uv run pytest tests/mcp_server/test_mcp_client.py::test_mcp_server -m integration -v --no-cov"
 
           # Test that the server can start successfully (run briefly)
           echo "=== Testing MCP Server Startup ==="
