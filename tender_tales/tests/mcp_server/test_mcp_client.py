@@ -14,6 +14,7 @@ from mcp_server.config import MCPConfig
 
 
 @pytest.mark.integration
+@pytest.mark.asyncio
 async def test_mcp_server() -> None:
     """Test the MCP server components without running the server."""
     print("=== Testing MCP Server Functionality ===")

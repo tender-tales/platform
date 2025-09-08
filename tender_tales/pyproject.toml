@@ -39,7 +39,8 @@ packages = ["api/", "mcp_server/", "services/", "shared/"]
 
 [dependency-groups]
 dev = [
-    "pytest>=7.1.1",
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.1.0",
     "pre-commit>=4.0.0",
     "pytest-cov>=3.0.0",
     "codecov>=2.1.13",
@@ -144,6 +145,7 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+asyncio_mode = "auto"
 addopts = [
     "-v",
     "--tb=short",
