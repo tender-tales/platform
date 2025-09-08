@@ -1,17 +1,20 @@
 #!/usr/bin/env python3
-"""Simple MCP client test script to verify server functionality."""
+"""Integration test for MCP server functionality."""
 
 import asyncio
-import sys
 import traceback
 
 import ee
-import tools
+import pytest
+
+from mcp_server import tools
 
 # Import only the config to avoid running the server
-from config import MCPConfig
+from mcp_server.config import MCPConfig
 
 
+@pytest.mark.integration
+@pytest.mark.asyncio
 async def test_mcp_server() -> None:
     """Test the MCP server components without running the server."""
     print("=== Testing MCP Server Functionality ===")
@@ -86,7 +89,7 @@ async def test_mcp_server() -> None:
     except Exception as e:
         print(f"✗ Test failed: {e}")
         traceback.print_exc()
-        sys.exit(1)
+        pytest.fail(f"MCP server integration test failed: {e}")
 
 
 if __name__ == "__main__":

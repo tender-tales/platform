@@ -23,7 +23,7 @@ env:
   DEBUG: false
 
 jobs:
-  build-backend:
+  build:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -90,7 +90,7 @@ jobs:
             -e GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json \
             -v $PWD/tender_tales/credentials.json:/app/credentials.json:ro \
             tender-tales/platform:mcp-server-${{ env.BUILD_ID }} \
-            sh -c "cd /app/mcp_server && uv run python test_mcp_client.py"
+            sh -c "cd /app && uv run pytest tests/mcp_server/test_mcp_client.py::test_mcp_server -m integration -v --no-cov"
 
           # Test that the server can start successfully (run briefly)
           echo "=== Testing MCP Server Startup ==="
@@ -138,9 +138,25 @@ jobs:
           docker compose logs backend
           docker compose down
 
+      - name: Build frontend image
+        run: |
+          export COMPOSE_PROJECT_NAME=tender-tales-ci
+          export BACKEND_PORT=${{ env.BACKEND_PORT }}
+          export FRONTEND_PORT=${{ env.FRONTEND_PORT }}
+          export BACKEND_HOST=${{ env.BACKEND_HOST }}
+          export DEBUG=${{ env.DEBUG }}
+          export BUILD_ID=${{ env.BUILD_ID }}
+          docker compose build frontend \
+            --build-arg NEXT_PUBLIC_MAPBOX_API_KEY=${{ secrets.MAPBOX_API_KEY }} \
+            --build-arg NEXT_PUBLIC_BACKEND_URL=http://localhost:8000 \
+            --build-arg NEXTAUTH_SECRET=test-secret \
+            --build-arg GOOGLE_CLIENT_ID=test-client-id \
+            --build-arg GOOGLE_CLIENT_SECRET=test-client-secret \
+            --build-arg WEB3FORMS_ACCESS_KEY=test-web3forms-key
+
   deploy:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    needs: build-backend
+    needs: build
     permissions:
       contents: read
       id-token: write
