@@ -86,16 +86,6 @@ export default function Footer() {
                   Kadal
                 </a>
               </li>
-              <li>
-                <a
-                  href="https://tender-tales.github.io/platform/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-gray-400 hover:text-white transition-colors duration-200"
-                >
-                  Documentation
-                </a>
-              </li>
             </ul>
           </div>
 
