@@ -1,0 +1,226 @@
+name: SEO Monitoring
+
+on:
+  schedule:
+    # Run daily at 6 AM UTC
+    - cron: '0 6 * * *'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/seo-monitor.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/seo-monitor.yml'
+  workflow_dispatch:
+    inputs:
+      run_lighthouse:
+        description: 'Run Lighthouse audit'
+        type: boolean
+        default: true
+
+env:
+  SITE_URL: https://tendertales.ca
+
+jobs:
+  seo-health-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check sitemap accessibility
+        run: |
+          echo "🗺️ Checking sitemap at ${{ env.SITE_URL }}/sitemap.xml"
+
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${{ env.SITE_URL }}/sitemap.xml")
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ Sitemap accessible (HTTP $HTTP_CODE)"
+
+            # Download and validate
+            curl -s "${{ env.SITE_URL }}/sitemap.xml" > sitemap.xml
+
+            # Basic XML validation
+            if command -v xmllint >/dev/null 2>&1; then
+              xmllint --noout sitemap.xml && echo "✅ Sitemap XML is valid"
+            else
+              echo "⚠️ xmllint not available, skipping XML validation"
+            fi
+
+            # Count URLs
+            URL_COUNT=$(grep -c "<url>" sitemap.xml || echo "0")
+            echo "📊 Sitemap contains $URL_COUNT URLs"
+
+            if [ "$URL_COUNT" -lt 5 ]; then
+              echo "⚠️ Warning: Sitemap has fewer than 5 URLs"
+            fi
+
+            # Check for expected pages
+            EXPECTED_PAGES=("/" "/about" "/blog" "/contact")
+            for page in "${EXPECTED_PAGES[@]}"; do
+              if grep -q "<loc>.*${page}</loc>" sitemap.xml; then
+                echo "✅ Found expected page: $page"
+              else
+                echo "❌ Missing expected page: $page"
+              fi
+            done
+
+          else
+            echo "❌ Sitemap not accessible (HTTP $HTTP_CODE)"
+            exit 1
+          fi
+
+      - name: Check robots.txt
+        run: |
+          echo "🤖 Checking robots.txt at ${{ env.SITE_URL }}/robots.txt"
+
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${{ env.SITE_URL }}/robots.txt")
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ robots.txt accessible (HTTP $HTTP_CODE)"
+
+            # Download and check content
+            curl -s "${{ env.SITE_URL }}/robots.txt" > robots.txt
+
+            # Check for essential directives
+            if grep -q "User-agent:" robots.txt; then
+              echo "✅ User-agent directive found"
+            else
+              echo "❌ Missing User-agent directive"
+            fi
+
+            if grep -q "Sitemap:" robots.txt; then
+              echo "✅ Sitemap reference found"
+            else
+              echo "❌ Missing Sitemap reference"
+            fi
+
+            if grep -q "Disallow:" robots.txt; then
+              echo "✅ Disallow directives found"
+            else
+              echo "⚠️ No Disallow directives (may be intentional)"
+            fi
+
+          else
+            echo "❌ robots.txt not accessible (HTTP $HTTP_CODE)"
+            exit 1
+          fi
+
+      - name: Check core pages accessibility
+        run: |
+          echo "🌐 Checking core pages accessibility"
+
+          CORE_PAGES=("/" "/about" "/blog" "/contact" "/services/conservation-partnership" "/services/pro-bono-consulting")
+
+          for page in "${CORE_PAGES[@]}"; do
+            URL="${{ env.SITE_URL }}$page"
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
+
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "✅ $page (HTTP $HTTP_CODE)"
+            else
+              echo "❌ $page (HTTP $HTTP_CODE)"
+            fi
+          done
+
+      - name: Check meta tags
+        run: |
+          echo "🏷️ Checking meta tags for key pages"
+
+          # Check homepage meta tags
+          curl -s "${{ env.SITE_URL }}/" > homepage.html
+
+          if grep -q '<title>' homepage.html; then
+            TITLE=$(grep -o '<title>[^<]*</title>' homepage.html | sed 's/<[^>]*>//g')
+            echo "✅ Homepage title: $TITLE"
+          else
+            echo "❌ Homepage missing title tag"
+          fi
+
+          if grep -q 'meta.*description' homepage.html; then
+            echo "✅ Homepage has meta description"
+          else
+            echo "⚠️ Homepage may be missing meta description"
+          fi
+
+          if grep -q 'meta.*viewport' homepage.html; then
+            echo "✅ Homepage has viewport meta tag"
+          else
+            echo "❌ Homepage missing viewport meta tag"
+          fi
+
+  lighthouse-audit:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.run_lighthouse == 'true' || github.event.inputs.run_lighthouse == ''
+
+    steps:
+      - name: Run Lighthouse SEO audit
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          urls: |
+            ${{ env.SITE_URL }}
+            ${{ env.SITE_URL }}/about
+            ${{ env.SITE_URL }}/blog
+            ${{ env.SITE_URL }}/contact
+          configPath: ./lighthouse-config.json
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+
+      - name: Create Lighthouse config
+        run: |
+          cat > lighthouse-config.json << 'EOF'
+          {
+            "ci": {
+              "collect": {
+                "numberOfRuns": 3,
+                "settings": {
+                  "chromeFlags": ["--no-sandbox", "--headless"],
+                  "preset": "desktop",
+                  "throttling": {
+                    "rttMs": 40,
+                    "throughputKbps": 10240,
+                    "cpuSlowdownMultiplier": 1
+                  }
+                }
+              },
+              "assert": {
+                "assertions": {
+                  "categories:seo": ["error", {"minScore": 0.9}],
+                  "categories:accessibility": ["warn", {"minScore": 0.8}],
+                  "categories:best-practices": ["warn", {"minScore": 0.8}],
+                  "categories:performance": ["warn", {"minScore": 0.7}]
+                }
+              }
+            }
+          }
+          EOF
+
+  notify-results:
+    needs: [seo-health-check, lighthouse-audit]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Report results
+        run: |
+          echo "📊 SEO Monitoring Results for ${{ env.SITE_URL }}"
+          echo "============================================"
+
+          if [ "${{ needs.seo-health-check.result }}" = "success" ]; then
+            echo "✅ SEO Health Check: PASSED"
+          else
+            echo "❌ SEO Health Check: FAILED"
+          fi
+
+          if [ "${{ needs.lighthouse-audit.result }}" = "success" ]; then
+            echo "✅ Lighthouse Audit: PASSED"
+          elif [ "${{ needs.lighthouse-audit.result }}" = "skipped" ]; then
+            echo "⏭️ Lighthouse Audit: SKIPPED"
+          else
+            echo "❌ Lighthouse Audit: FAILED"
+          fi
+
+          echo ""
+          echo "📅 Monitoring completed at $(date)"
+
+          # If any job failed, exit with error
+          if [ "${{ needs.seo-health-check.result }}" != "success" ]; then
+            exit 1
+          fi

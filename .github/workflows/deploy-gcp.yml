@@ -40,6 +40,28 @@ jobs:
         run: |
           cd ui
           npm run build
+        env:
+          NEXT_PUBLIC_SITE_URL: https://tendertales.ca
+
+      - name: Generate and validate sitemap
+        run: |
+          cd ui
+          npm run generate-sitemap
+
+          # Validate sitemap XML
+          if [ -f "public/sitemap.xml" ]; then
+            echo "✅ Sitemap generated successfully"
+            xmllint --noout public/sitemap.xml && echo "✅ Sitemap XML is valid"
+
+            # Count URLs
+            URL_COUNT=$(grep -c "<url>" public/sitemap.xml || echo "0")
+            echo "📊 Sitemap contains $URL_COUNT URLs"
+          else
+            echo "❌ Sitemap generation failed"
+            exit 1
+          fi
+        env:
+          NEXT_PUBLIC_SITE_URL: https://tendertales.ca
 
       - name: Build Docker image
         run: |

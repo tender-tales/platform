@@ -8,7 +8,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "export": "next build"
+    "export": "next build",
+    "generate-sitemap": "tsx src/lib/build-sitemap.ts",
+    "build:with-sitemap": "npm run generate-sitemap && next build",
+    "postbuild": "npm run generate-sitemap"
   },
   "repository": {
     "type": "git",
@@ -41,5 +44,8 @@
     "react-dom": "^19.1.1",
     "tailwindcss": "^4.1.12",
     "typescript": "^5.9.2"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.5"
   }
 }
