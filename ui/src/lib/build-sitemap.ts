@@ -20,11 +20,11 @@ export async function generateStaticSitemap(config: BuildConfig): Promise<string
   const { siteUrl, outputPath, appDir = path.join(process.cwd(), 'src', 'app') } = config
 
   try {
-    console.log('🗺️  Generating sitemap...')
+    console.log('Generating sitemap...')
 
     // Discover all pages
     const pages = await discoverPages(appDir)
-    console.log(`📄 Found ${pages.length} pages`)
+    console.log(`Found ${pages.length} pages`)
 
     // Generate XML
     const sitemapXML = generateSitemapXML(siteUrl, pages)
@@ -32,18 +32,18 @@ export async function generateStaticSitemap(config: BuildConfig): Promise<string
     // Write to file if output path is specified
     if (outputPath) {
       await fs.writeFile(outputPath, sitemapXML, 'utf8')
-      console.log(`✅ Sitemap written to ${outputPath}`)
+      console.log(`Sitemap written to ${outputPath}`)
     }
 
     // Log discovered routes for debugging
-    console.log('📋 Discovered routes:')
+    console.log('Discovered routes:')
     pages.forEach(page => {
       console.log(`   ${page.route} (priority: ${page.priority}, changefreq: ${page.changefreq})`)
     })
 
     return sitemapXML
   } catch (error) {
-    console.error('❌ Error generating sitemap:', error)
+    console.error('ERROR: Error generating sitemap:', error)
     throw error
   }
 }

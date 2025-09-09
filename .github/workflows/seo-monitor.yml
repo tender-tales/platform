@@ -153,18 +153,6 @@ jobs:
     if: github.event.inputs.run_lighthouse == 'true' || github.event.inputs.run_lighthouse == ''
 
     steps:
-      - name: Run Lighthouse SEO audit
-        uses: treosh/lighthouse-ci-action@v12
-        with:
-          urls: |
-            ${{ env.SITE_URL }}
-            ${{ env.SITE_URL }}/about
-            ${{ env.SITE_URL }}/blog
-            ${{ env.SITE_URL }}/contact
-          configPath: ./lighthouse-config.json
-          uploadArtifacts: true
-          temporaryPublicStorage: true
-
       - name: Create Lighthouse config
         run: |
           cat > lighthouse-config.json << 'EOF'
@@ -193,6 +181,18 @@ jobs:
             }
           }
           EOF
+
+      - name: Run Lighthouse SEO audit
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          urls: |
+            ${{ env.SITE_URL }}
+            ${{ env.SITE_URL }}/about
+            ${{ env.SITE_URL }}/blog
+            ${{ env.SITE_URL }}/contact
+          configPath: ./lighthouse-config.json
+          uploadArtifacts: true
+          temporaryPublicStorage: true
 
   notify-results:
     needs: [seo-health-check, lighthouse-audit]

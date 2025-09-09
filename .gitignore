@@ -12,6 +12,9 @@
 /.next/
 /out/
 
+# Generated files
+ui/public/sitemap.xml
+
 # Production
 /build
 

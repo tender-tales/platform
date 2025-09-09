@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     // You can also revalidate other related paths
     revalidatePath('/robots.txt')
 
-    console.log('🔄 Sitemap cache revalidated')
+    console.log('Sitemap cache revalidated')
 
     return NextResponse.json({
       message: 'Sitemap cache revalidated successfully',

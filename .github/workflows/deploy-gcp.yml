@@ -36,28 +36,21 @@ jobs:
           cd ui
           npm ci
 
-      - name: Build website
+      - name: Build website with sitemap
         run: |
           cd ui
-          npm run build
-        env:
-          NEXT_PUBLIC_SITE_URL: https://tendertales.ca
-
-      - name: Generate and validate sitemap
-        run: |
-          cd ui
-          npm run generate-sitemap
+          npm run build:with-sitemap
 
           # Validate sitemap XML
           if [ -f "public/sitemap.xml" ]; then
-            echo "✅ Sitemap generated successfully"
-            xmllint --noout public/sitemap.xml && echo "✅ Sitemap XML is valid"
+            echo "Sitemap generated successfully"
+            xmllint --noout public/sitemap.xml && echo "Sitemap XML validation passed"
 
             # Count URLs
             URL_COUNT=$(grep -c "<url>" public/sitemap.xml || echo "0")
-            echo "📊 Sitemap contains $URL_COUNT URLs"
+            echo "Sitemap contains $URL_COUNT URLs"
           else
-            echo "❌ Sitemap generation failed"
+            echo "ERROR: Sitemap generation failed"
             exit 1
           fi
         env:
@@ -82,9 +75,9 @@ jobs:
 
           # Check if container is running
           if docker ps | grep website-test-${{ env.BUILD_ID }}; then
-            echo "✓ Website container started successfully"
+            echo "Website container started successfully"
           else
-            echo "✗ Website container failed to start"
+            echo "ERROR: Website container failed to start"
             docker logs website-test-${{ env.BUILD_ID }}
             exit 1
           fi

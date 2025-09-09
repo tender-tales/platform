@@ -10,8 +10,7 @@
     "lint": "next lint",
     "export": "next build",
     "generate-sitemap": "tsx src/lib/build-sitemap.ts",
-    "build:with-sitemap": "npm run generate-sitemap && next build",
-    "postbuild": "npm run generate-sitemap"
+    "build:with-sitemap": "npm run generate-sitemap && next build"
   },
   "repository": {
     "type": "git",
