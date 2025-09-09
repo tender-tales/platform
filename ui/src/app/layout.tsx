@@ -1,9 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import AuthProvider from '@/components/auth/auth-provider'
-import { getServerAuthSession } from '@/lib/auth'
 
-const siteUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
 
 export const metadata: Metadata = {
   title: 'Tender Tales - Satellite Change Detection Platform',
@@ -42,19 +40,15 @@ export const metadata: Metadata = {
   },
 }
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const session = await getServerAuthSession()
-
   return (
     <html lang="en">
       <body className="antialiased">
-        <AuthProvider session={session}>
-          {children}
-        </AuthProvider>
+        {children}
       </body>
     </html>
   )
