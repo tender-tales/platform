@@ -153,6 +153,9 @@ jobs:
     if: github.event.inputs.run_lighthouse == 'true' || github.event.inputs.run_lighthouse == ''
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Create Lighthouse config
         run: |
           cat > lighthouse-config.json << 'EOF'

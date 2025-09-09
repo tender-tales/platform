@@ -1,5 +1,9 @@
 # Tender Tales Inc. Website
 
+[![SEO Monitoring](https://github.com/tender-tales/platform/actions/workflows/seo-monitor.yml/badge.svg)](https://github.com/tender-tales/platform/actions/workflows/seo-monitor.yml)
+[![Website](https://img.shields.io/website?url=https%3A%2F%2Ftendertales.ca)](https://tendertales.ca)
+[![Uptime Robot status](https://img.shields.io/uptimerobot/status/m797011484-8c2a3b2b6c6f4f8e9e6d0c3a)](https://tendertales.ca)
+
 This repository contains the website for Tender Tales Inc., an environmental technology company dedicated to ecosystem preservation and monitoring.
 
 ## About Tender Tales Inc.
