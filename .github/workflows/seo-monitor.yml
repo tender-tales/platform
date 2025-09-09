@@ -1,4 +1,6 @@
 name: SEO Monitoring
+permissions:
+  contents: read
 
 on:
   schedule:
