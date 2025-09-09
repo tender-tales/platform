@@ -79,7 +79,7 @@ export default function Home() {
               className="text-lg md:text-xl text-gray-300 mb-12 max-w-3xl mx-auto leading-relaxed"
               variants={fadeInUp}
             >
-              Our planet is transforming before our eyes, and human activity is the leading force behind this change. Our mission is to protect vulnerable ecosystems and preserve the rich fabric of biodiversity on which all life depends.
+              Our planet is transforming before our eyes, and human activity is the leading force behind this change. Our mission is to help protect vulnerable ecosystems and preserve the rich fabric of biodiversity on which all life depends.
             </motion.p>
 
           </motion.div>

@@ -111,13 +111,12 @@ export default function AboutPage() {
 
                   <div className="text-gray-300 text-sm leading-relaxed space-y-3">
                     <p>
-                      MBA graduate from University of British Columbia with Big4 consulting experience
-                      and 6+ years leading complex business transformations across strategy and operations.
+                      MBA graduate from the University of British Columbia with Big 4 consulting experience
+                      and over six years of expertise in strategy and operations, leading major business transformation efforts.
                     </p>
                     <p>
-                      Award-winning leader specializing in supply chain optimization, product management,
-                      and sustainable business practices. Lean Six Sigma certified with a passion for
-                      social entrepreneurship.
+                      Award-winning leader with expertise in risk management, supply chain optimization,
+                      and sustainable business practices, driven by a strong passion for social entrepreneurship.
                     </p>
                     <p>
                       Dedicated to leveraging technology and data-driven insights to create positive
@@ -129,7 +128,7 @@ export default function AboutPage() {
                     <span className="px-3 py-1 bg-ocean-900/50 text-ocean-300 rounded-full text-xs">Strategy</span>
                     <span className="px-3 py-1 bg-ocean-900/50 text-ocean-300 rounded-full text-xs">Operations</span>
                     <span className="px-3 py-1 bg-ocean-900/50 text-ocean-300 rounded-full text-xs">Supply Chain</span>
-                    <span className="px-3 py-1 bg-ocean-900/50 text-ocean-300 rounded-full text-xs">Product Management</span>
+                    <span className="px-3 py-1 bg-ocean-900/50 text-ocean-300 rounded-full text-xs">Business Transformation</span>
                   </div>
 
                   <a
@@ -169,15 +168,15 @@ export default function AboutPage() {
 
                   <div className="text-gray-300 text-sm leading-relaxed space-y-3">
                     <p>
-                      Technical leader with deep expertise in Artificial Intelligence and Software Engineering
-                      across diverse application domains including automotive and healthcare systems.
+                      Technical leader specializing in artificial intelligence and software engineering,
+                      with extensive experience in designing systems and platform architectures across diverse domains.
                     </p>
                     <p>
                       Proven track record of developing scalable AI solutions and leading cross-functional
                       technical teams to deliver innovative products.
                     </p>
                     <p>
-                      Passionate about applying cutting-edge AI and machine learning technologies to solve
+                      Passionate about applying cutting-edge AI technologies to solve
                       complex environmental challenges and create meaningful technological impact.
                     </p>
                   </div>
