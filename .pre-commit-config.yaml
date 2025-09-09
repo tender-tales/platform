@@ -3,11 +3,6 @@ repos:
     rev: v6.0.0 # Use the ref you want to point at
     hooks:
       - id: trailing-whitespace
-      - id: check-ast
-      - id: check-builtin-literals
-      - id: check-docstring-first
-      - id: check-executables-have-shebangs
-      - id: debug-statements
       - id: end-of-file-fixer
       - id: mixed-line-ending
         args: [--fix=lf]
@@ -15,34 +10,9 @@ repos:
       - id: check-merge-conflict
       - id: check-symlinks
       - id: detect-private-key
-      - id: requirements-txt-fixer
       - id: check-yaml
         args: [--unsafe]
-      - id: check-toml
-
-  - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.8.11
-    hooks:
-      - id: uv-lock
-
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: 'v0.12.9'
-    hooks:
-      - id: ruff-check
-        args: [--fix]
-        types_or: [python, jupyter]
-      - id: ruff-format
-        types_or: [python, jupyter]
-
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.17.1
-    hooks:
-      - id: mypy
-        entry: python3 -m mypy --config-file tender_tales/pyproject.toml
-        language: system
-        types: [python]
-        exclude: 'tests'
-        args: [--python-executable, python3]
+      - id: check-json
 
   - repo: https://github.com/crate-ci/typos
     rev: v1.35.6
@@ -52,23 +22,20 @@ repos:
 
   - repo: local
     hooks:
-      - id: prettier-js-format
-        name: prettier-js-format
-        entry: npm run format:fix
-        files: 'app/'
-        language: node
-        types: [javascript]
-        additional_dependencies:
-          - npm
-          - prettier
+      - id: nextjs-lint
+        name: Next.js Lint
+        entry: bash -c 'cd ui && npm run lint'
+        language: system
+        files: '^ui/.*\.(js|jsx|ts|tsx)$'
+        pass_filenames: false
 
   - repo: local
     hooks:
-      - id: nextjs-lint
-        name: Next.js Lint
-        entry: npm run lint
+      - id: nextjs-type-check
+        name: Next.js Type Check
+        entry: bash -c 'cd ui && npm run build'
         language: system
-        types: [javascript, jsx, tsx]
+        files: '^ui/.*\.(js|jsx|ts|tsx)$'
         pass_filenames: false
 
 ci:
@@ -80,5 +47,5 @@ ci:
   autoupdate_branch: ''
   autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
   autoupdate_schedule: weekly
-  skip: [mypy, prettier-js-format, nextjs-lint]
+  skip: [nextjs-lint, nextjs-type-check]
   submodules: false

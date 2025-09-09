@@ -1,1 +1,0 @@
-"""Tender Tales Backend API."""

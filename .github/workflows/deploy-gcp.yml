@@ -1,4 +1,4 @@
-name: build and deploy to GCP
+name: build and deploy website to GCP
 
 on:
   push:
@@ -10,17 +10,9 @@ env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GAR_LOCATION: us-central1
   REPOSITORY: tender-tales
-  SERVICE_BACKEND: tender-tales-backend
-  SERVICE_FRONTEND: tender-tales-frontend
-  SERVICE_MCP: tender-tales-mcp
+  SERVICE: tender-tales-website
   REGION: us-central1
   BUILD_ID: ${{ github.sha }}
-  # Common environment variables for builds
-  BACKEND_PORT: 8000
-  FRONTEND_PORT: 3000
-  MCP_PORT: 8000
-  BACKEND_HOST: localhost
-  DEBUG: false
 
 jobs:
   build:
@@ -32,127 +24,52 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Create Earth Engine Credentials (for build)
-        run: echo '${{ secrets.EARTH_ENGINE_CREDENTIALS }}' > tender_tales/credentials.json
-
-      - name: Set up environment variables
-        run: |
-          cat > .env.production << EOF
-          BACKEND_PORT=${{ env.BACKEND_PORT }}
-          FRONTEND_PORT=${{ env.FRONTEND_PORT }}
-          MCP_PORT=${{ env.MCP_PORT }}
-          BACKEND_HOST=${{ env.BACKEND_HOST }}
-          EARTH_ENGINE_PROJECT_ID=test-project
-          DEBUG=${{ env.DEBUG }}
-          EOF
-
-      - name: Build backend image
-        run: |
-          export COMPOSE_PROJECT_NAME=tender-tales-ci
-          export BACKEND_PORT=${{ env.BACKEND_PORT }}
-          export FRONTEND_PORT=${{ env.FRONTEND_PORT }}
-          export BACKEND_HOST=${{ env.BACKEND_HOST }}
-          export EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
-          export DEBUG=${{ env.DEBUG }}
-          export BUILD_ID=${{ env.BUILD_ID }}
-          docker compose build backend
-
-      - name: Build MCP server image
-        run: |
-          export COMPOSE_PROJECT_NAME=tender-tales-ci
-          export MCP_PORT=${{ env.MCP_PORT }}
-          export EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
-          export DEBUG=${{ env.DEBUG }}
-          export BUILD_ID=${{ env.BUILD_ID }}
-          docker compose build mcp-server
-
-      - name: Google Auth for Testing
-        if: github.actor != 'dependabot[bot]'
-        uses: 'google-github-actions/auth@v3'
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          workload_identity_provider: '${{ secrets.WIF_PROVIDER }}'
-          service_account: 'earth-engine-service@ocean-health-468302.iam.gserviceaccount.com'
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: ui/package-lock.json
 
-      - name: Test MCP server functionality
-        if: github.actor != 'dependabot[bot]'
+      - name: Install dependencies
         run: |
-          export MCP_PORT=${{ env.MCP_PORT }}
-          export EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
-          export DEBUG=${{ env.DEBUG }}
+          cd ui
+          npm ci
+
+      - name: Build website
+        run: |
+          cd ui
+          npm run build
+
+      - name: Build Docker image
+        run: |
           export BUILD_ID=${{ env.BUILD_ID }}
+          export WEB3FORMS_ACCESS_KEY=${{ secrets.WEB3FORMS_ACCESS_KEY }}
+          export NEXT_PUBLIC_SITE_URL=https://tendertales.ca
+          docker compose build website
 
-          # Test MCP server components without running the server
-          echo "=== Testing MCP Server Components ==="
-          docker run --rm \
-            -e EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }} \
-            -e MCP_PORT=${{ env.MCP_PORT }} \
-            -e DEBUG=${{ env.DEBUG }} \
-            -e GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json \
-            -v $PWD/tender_tales/credentials.json:/app/credentials.json:ro \
-            tender-tales/platform:mcp-server-${{ env.BUILD_ID }} \
-            sh -c "cd /app && uv run pytest tests/mcp_server/test_mcp_client.py::test_mcp_server -m integration -v --no-cov"
+      - name: Test Docker image
+        run: |
+          # Test that the container can start successfully
+          docker run -d --name website-test-${{ env.BUILD_ID }} \
+            -p 3000:3000 \
+            tender-tales/website:${{ env.BUILD_ID }}
 
-          # Test that the server can start successfully (run briefly)
-          echo "=== Testing MCP Server Startup ==="
-          docker run -d \
-            --name mcp-server-test-${{ env.BUILD_ID }} \
-            -e EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }} \
-            -e MCP_PORT=${{ env.MCP_PORT }} \
-            -e DEBUG=${{ env.DEBUG }} \
-            -e GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json \
-            -v $PWD/tender_tales/credentials.json:/app/credentials.json:ro \
-            tender-tales/platform:mcp-server-${{ env.BUILD_ID }}
-
-          # Wait for server to initialize
+          # Wait for startup
           sleep 10
 
-          # Check if container is still running (indicates successful startup)
-          if docker ps | grep mcp-server-test-${{ env.BUILD_ID }}; then
-            echo "✓ MCP server started successfully"
+          # Check if container is running
+          if docker ps | grep website-test-${{ env.BUILD_ID }}; then
+            echo "✓ Website container started successfully"
           else
-            echo "✗ MCP server failed to start"
+            echo "✗ Website container failed to start"
+            docker logs website-test-${{ env.BUILD_ID }}
             exit 1
           fi
 
-          # Check container logs for any startup issues
-          echo "=== MCP Server Startup Logs ==="
-          docker logs mcp-server-test-${{ env.BUILD_ID }}
-
           # Clean up
-          docker stop mcp-server-test-${{ env.BUILD_ID }} || true
-          docker rm mcp-server-test-${{ env.BUILD_ID }} || true
-
-      - name: Test backend functionality
-        if: github.actor != 'dependabot[bot]'
-        run: |
-          export COMPOSE_PROJECT_NAME=tender-tales-ci
-          export BACKEND_PORT=${{ env.BACKEND_PORT }}
-          export FRONTEND_PORT=${{ env.FRONTEND_PORT }}
-          export BACKEND_HOST=${{ env.BACKEND_HOST }}
-          export EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
-          export DEBUG=${{ env.DEBUG }}
-          export BUILD_ID=${{ env.BUILD_ID }}
-          docker compose up -d backend
-          sleep 30
-          docker compose ps
-          docker compose logs backend
-          docker compose down
-
-      - name: Build frontend image
-        run: |
-          export COMPOSE_PROJECT_NAME=tender-tales-ci
-          export BACKEND_PORT=${{ env.BACKEND_PORT }}
-          export FRONTEND_PORT=${{ env.FRONTEND_PORT }}
-          export BACKEND_HOST=${{ env.BACKEND_HOST }}
-          export DEBUG=${{ env.DEBUG }}
-          export BUILD_ID=${{ env.BUILD_ID }}
-          docker compose build frontend \
-            --build-arg NEXT_PUBLIC_MAPBOX_API_KEY=${{ secrets.MAPBOX_API_KEY }} \
-            --build-arg NEXT_PUBLIC_BACKEND_URL=http://localhost:8000 \
-            --build-arg NEXTAUTH_SECRET=test-secret \
-            --build-arg GOOGLE_CLIENT_ID=test-client-id \
-            --build-arg GOOGLE_CLIENT_SECRET=test-client-secret \
-            --build-arg WEB3FORMS_ACCESS_KEY=test-web3forms-key
+          docker stop website-test-${{ env.BUILD_ID }} || true
+          docker rm website-test-${{ env.BUILD_ID }} || true
 
   deploy:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -170,7 +87,7 @@ jobs:
         uses: 'google-github-actions/auth@v3'
         with:
           workload_identity_provider: '${{ secrets.WIF_PROVIDER }}'
-          service_account: 'earth-engine-service@ocean-health-468302.iam.gserviceaccount.com'
+          service_account: '${{ secrets.GCP_SERVICE_ACCOUNT }}'
 
       - name: Set up Cloud SDK
         uses: 'google-github-actions/setup-gcloud@v3'
@@ -178,132 +95,33 @@ jobs:
       - name: Configure Docker for GAR
         run: gcloud auth configure-docker ${{ env.GAR_LOCATION }}-docker.pkg.dev --quiet
 
-      - name: Create Earth Engine Credentials
-        run: echo '${{ secrets.EARTH_ENGINE_CREDENTIALS }}' > tender_tales/credentials.json
-
-      - name: Set up environment variables
+      - name: Build and push website image
         run: |
-          cat > .env.production << EOF
-          BACKEND_PORT=${{ env.BACKEND_PORT }}
-          FRONTEND_PORT=${{ env.FRONTEND_PORT }}
-          MCP_PORT=${{ env.MCP_PORT }}
-          BACKEND_HOST=${{ env.BACKEND_HOST }}
-          EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
-          DEBUG=${{ env.DEBUG }}
-          # NextAuth Configuration
-          NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}
-          GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
-          GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
-          # Web3Forms Configuration
-          WEB3FORMS_ACCESS_KEY=${{ secrets.WEB3FORMS_ACCESS_KEY }}
-          EOF
-
-      - name: Build and push backend image
-        run: |
+          # Set environment variables for docker-compose
           export BUILD_ID=${{ env.BUILD_ID }}
-          export EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
+          export WEB3FORMS_ACCESS_KEY=${{ secrets.WEB3FORMS_ACCESS_KEY }}
+          export NEXT_PUBLIC_SITE_URL=https://tendertales.ca
 
-          # Build backend using new unified Dockerfile
-          docker build -t tender-tales/platform:backend-${{ env.BUILD_ID }} \
-            --build-arg BACKEND_PORT=${{ env.BACKEND_PORT }} \
-            --build-arg FRONTEND_PORT=${{ env.FRONTEND_PORT }} \
-            -f ./tender_tales/Dockerfile.api \
-            ./tender_tales
+          # Build website image using docker-compose
+          docker compose build website
 
-          # Tag and push backend
-          docker tag tender-tales/platform:backend-${{ env.BUILD_ID }} \
-            ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_BACKEND }}:${{ github.sha }}
-          docker push ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_BACKEND }}:${{ github.sha }}
+          # Tag and push website
+          docker tag tender-tales/website:${{ env.BUILD_ID }} \
+            ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE }}:${{ github.sha }}
+          docker push ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE }}:${{ github.sha }}
 
-      - name: Build and push MCP server image
-        run: |
-          export BUILD_ID=${{ env.BUILD_ID }}
-          export EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
-
-          # Build MCP server using new unified Dockerfile
-          docker build -t tender-tales/platform:mcp-server-${{ env.BUILD_ID }} \
-            --build-arg MCP_PORT=${{ env.MCP_PORT }} \
-            -f ./tender_tales/Dockerfile.mcp \
-            ./tender_tales
-
-          # Tag and push MCP server
-          docker tag tender-tales/platform:mcp-server-${{ env.BUILD_ID }} \
-            ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_MCP }}:${{ github.sha }}
-          docker push ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_MCP }}:${{ github.sha }}
-
-      - name: Deploy Backend to Cloud Run
-        id: deploy-backend
+      - name: Deploy Website to Cloud Run
+        id: deploy-website
         uses: google-github-actions/deploy-cloudrun@v2
         with:
-          service: ${{ env.SERVICE_BACKEND }}
+          service: ${{ env.SERVICE }}
           region: ${{ env.REGION }}
-          image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_BACKEND }}:${{ github.sha }}
-          flags: '--allow-unauthenticated --memory=1Gi --cpu=1 --timeout=300 --max-instances=10 --cpu-boost --port=8000'
+          image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE }}:${{ github.sha }}
+          flags: '--allow-unauthenticated --memory=512Mi --cpu=1 --timeout=300 --max-instances=10 --port=3000'
           env_vars: |
-            EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
-            GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
-
-      - name: Deploy MCP Server to Cloud Run
-        id: deploy-mcp
-        uses: google-github-actions/deploy-cloudrun@v2
-        with:
-          service: ${{ env.SERVICE_MCP }}
-          region: ${{ env.REGION }}
-          image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_MCP }}:${{ github.sha }}
-          flags: '--allow-unauthenticated --memory=1Gi --cpu=1 --timeout=300 --max-instances=10 --cpu-boost --cpu-throttling --port=8000'
-          env_vars: |
-            EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
-            GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
-
-      - name: Build and push frontend image with backend URL
-        run: |
-          export COMPOSE_PROJECT_NAME=tender-tales-gcp
-          export BACKEND_PORT=${{ env.BACKEND_PORT }}
-          export FRONTEND_PORT=${{ env.FRONTEND_PORT }}
-          export BACKEND_HOST=${{ env.BACKEND_HOST }}
-          export EARTH_ENGINE_PROJECT_ID=${{ secrets.EARTH_ENGINE_PROJECT_ID }}
-          export DEBUG=${{ env.DEBUG }}
-          export BUILD_ID=${{ env.BUILD_ID }}
-
-          # Build frontend with the deployed backend URL and NextAuth config
-          docker compose build frontend \
-            --build-arg NEXT_PUBLIC_MAPBOX_API_KEY=${{ secrets.MAPBOX_API_KEY }} \
-            --build-arg NEXT_PUBLIC_BACKEND_URL=${{ steps.deploy-backend.outputs.url }} \
-            --build-arg NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }} \
-            --build-arg GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
-            --build-arg GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }} \
-            --build-arg WEB3FORMS_ACCESS_KEY=${{ secrets.WEB3FORMS_ACCESS_KEY }}
-
-          # Tag and push frontend
-          docker tag tender-tales/platform:frontend-${{ env.BUILD_ID }} \
-            ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_FRONTEND }}:${{ github.sha }}
-          docker push ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_FRONTEND }}:${{ github.sha }}
-
-      - name: Get Project Number
-        id: get-project-number
-        run: |
-          PROJECT_NUMBER=$(gcloud projects describe ${{ env.PROJECT_ID }} --format="value(projectNumber)")
-          echo "PROJECT_NUMBER=$PROJECT_NUMBER" >> $GITHUB_OUTPUT
-
-      - name: Deploy Frontend to Cloud Run
-        id: deploy-frontend
-        uses: google-github-actions/deploy-cloudrun@v2
-        with:
-          service: ${{ env.SERVICE_FRONTEND }}
-          region: ${{ env.REGION }}
-          image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_FRONTEND }}:${{ github.sha }}
-          flags: '--allow-unauthenticated --memory=512Mi --cpu=1 --timeout=300 --max-instances=10'
-          env_vars: |
-            NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}
-            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
-            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
             WEB3FORMS_ACCESS_KEY=${{ secrets.WEB3FORMS_ACCESS_KEY }}
-            NEXTAUTH_URL=https://tendertales.ca
             NEXT_PUBLIC_SITE_URL=https://tendertales.ca
 
-
-      - name: Show deployment URLs
+      - name: Show deployment URL
         run: |
-          echo "Backend URL: ${{ steps.deploy-backend.outputs.url }}"
-          echo "MCP Server URL: ${{ steps.deploy-mcp.outputs.url }}"
-          echo "Frontend URL: ${{ steps.deploy-frontend.outputs.url }}"
+          echo "Website URL: ${{ steps.deploy-website.outputs.url }}"

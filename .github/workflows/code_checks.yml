@@ -10,20 +10,20 @@ on:
     paths:
       - .pre-commit-config.yaml
       - .github/workflows/code_checks.yml
-      - '**.py'
-      - uv.lock
-      - pyproject.toml
-      - '**.ipynb'
+      - 'ui/**'
+      - '**.md'
+      - '**.yml'
+      - '**.yaml'
   pull_request:
     branches:
       - main
     paths:
       - .pre-commit-config.yaml
       - .github/workflows/code_checks.yml
-      - '**.py'
-      - uv.lock
-      - pyproject.toml
-      - '**.ipynb'
+      - 'ui/**'
+      - '**.md'
+      - '**.yml'
+      - '**.yaml'
 
 jobs:
   run-code-check:
@@ -31,30 +31,25 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@bd01e18f51369d5a26f1651c3cb451d3417e3bba
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          # Install a specific version of uv.
-          version: "0.7.20"
-          enable-cache: true
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: ui/package-lock.json
 
-      - name: "Set up Python"
-        uses: actions/setup-python@8d9ed9ac5c53483de85588cdf95a591a75ab9f55
-        with:
-          python-version-file: ".python-version"
-
-      - name: Install the project
-        run: cd tender_tales && uv sync --dev
-
-      - name: Install dependencies and check code
+      - name: Install dependencies
         run: |
-          source tender_tales/.venv/bin/activate
-          pre-commit run --all-files
+          cd ui
+          npm ci
 
-      - name: pip-audit (gh-action-pip-audit)
-        uses: pypa/gh-action-pip-audit@1220774d901786e6f652ae159f7b6bc8fea6d266
+      - name: Set up Python for pre-commit
+        uses: actions/setup-python@v5
         with:
-          virtual-environment: tender_tales/.venv/
-          # GHSA-wj6h-64fc-37mp is an ecdsa vulnerability with no planned fix (timing attack considered out of scope)
-          ignore-vulns: |
-            GHSA-wj6h-64fc-37mp
+          python-version: '3.11'
+
+      - name: Install pre-commit
+        run: pip install pre-commit
+
+      - name: Run pre-commit hooks
+        run: pre-commit run --all-files

@@ -77,12 +77,14 @@ export default function Footer() {
             <h3 className="text-white font-semibold text-lg mb-4">Product</h3>
             <ul className="space-y-3">
               <li>
-                <Link
-                  href="/kadal"
+                <a
+                  href="https://kadal.tendertales.ca"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="text-gray-400 hover:text-white transition-colors duration-200"
                 >
                   Kadal
-                </Link>
+                </a>
               </li>
               <li>
                 <a
