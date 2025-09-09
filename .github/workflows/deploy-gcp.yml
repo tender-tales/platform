@@ -43,7 +43,10 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t tender-tales/website:${{ env.BUILD_ID }} --build-arg WEB3FORMS_ACCESS_KEY=${{ secrets.WEB3FORMS_ACCESS_KEY }} --build-arg NEXT_PUBLIC_SITE_URL=https://tendertales.ca ui/
+          docker build -t tender-tales/website:${{ env.BUILD_ID }} \
+            --build-arg WEB3FORMS_ACCESS_KEY=${{ secrets.WEB3FORMS_ACCESS_KEY }} \
+            --build-arg NEXT_PUBLIC_SITE_URL=https://tendertales.ca \
+            ./ui
 
       - name: Test Docker image
         run: |
@@ -95,10 +98,14 @@ jobs:
       - name: Build and push website image
         run: |
           # Build website image
-          docker build -t tender-tales/website:${{ env.BUILD_ID }} --build-arg WEB3FORMS_ACCESS_KEY=${{ secrets.WEB3FORMS_ACCESS_KEY }} --build-arg NEXT_PUBLIC_SITE_URL=https://tendertales.ca ui/
+          docker build -t tender-tales/website:${{ env.BUILD_ID }} \
+            --build-arg WEB3FORMS_ACCESS_KEY=${{ secrets.WEB3FORMS_ACCESS_KEY }} \
+            --build-arg NEXT_PUBLIC_SITE_URL=https://tendertales.ca \
+            ./ui
 
           # Tag and push website
-          docker tag tender-tales/website:${{ env.BUILD_ID }} ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE }}:${{ github.sha }}
+          docker tag tender-tales/website:${{ env.BUILD_ID }} \
+            ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE }}:${{ github.sha }}
           docker push ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE }}:${{ github.sha }}
 
       - name: Deploy Website to Cloud Run
