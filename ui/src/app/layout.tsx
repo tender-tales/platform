@@ -4,14 +4,14 @@ import './globals.css'
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
 
 export const metadata: Metadata = {
-  title: 'Tender Tales - Satellite Change Detection Platform',
-  description: 'Visualizing environmental change through Google Earth Engine satellite data. Detect and monitor changes in forest cover, urban development, and land use with AI-powered analysis.',
-  keywords: 'satellite imagery, environmental monitoring, Google Earth Engine, AI, conservation, ocean health, change detection',
+  title: 'Tender Tales',
+  description: 'Our mission is to help protect vulnerable ecosystems and preserve the rich fabric of biodiversity on which all life depends.',
+  keywords: 'environmental conservation, biodiversity protection, ecosystem monitoring, wildlife conservation, marine conservation, forest protection, climate change, environmental science, sustainability, nature preservation, ecological research, environmental data, remote sensing, habitat protection, species conservation, environmental impact, conservation technology, green technology, earth observation, environmental awareness, conservation efforts, endangered species, natural resources, environmental stewardship, conservation biology, ecological diversity, environmental protection, conservation planning, sustainable development, environmental solutions',
   robots: 'index, follow',
   metadataBase: new URL(siteUrl),
   openGraph: {
-    title: 'Tender Tales - Satellite Change Detection Platform',
-    description: 'Visualizing environmental change through Google Earth Engine satellite data. Detect and monitor changes in forest cover, urban development, and land use with AI-powered analysis.',
+    title: 'Tender Tales',
+    description: 'Our mission is to help protect vulnerable ecosystems and preserve the rich fabric of biodiversity on which all life depends.',
     url: siteUrl,
     siteName: 'Tender Tales',
     images: [
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
         url: '/tender-tales-logo.png',
         width: 1200,
         height: 630,
-        alt: 'Tender Tales Logo',
+        alt: 'Tender Tales',
       },
     ],
     locale: 'en_US',
@@ -27,8 +27,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Tender Tales - Satellite Change Detection Platform',
-    description: 'Visualizing environmental change through Google Earth Engine satellite data. Detect and monitor changes in forest cover, urban development, and land use with AI-powered analysis.',
+    title: 'Tender Tales',
+    description: 'Our mission is to help protect vulnerable ecosystems and preserve the rich fabric of biodiversity on which all life depends.',
     images: ['/tender-tales-logo.png'],
   },
   icons: {
